@@ -22,10 +22,17 @@ void ht_free_entity(ht_t* table, char* id){
     int idx = strhash(id);
     if(table->arr[idx] != NULL){
         ht_entry_t* walk = table->arr[idx];
+        if(!strcmp(((entity_t*)walk->object)->id, id)){
+            table->arr[idx] = walk->next;
+            free(walk->object);
+            free(walk);
+            return;
+        }
         while(walk->next){
             if(!strcmp(((entity_t*)walk->next->object)->id, id)){
                 ht_entry_t* tbd = walk->next;
                 walk->next = walk->next->next;
+                free(tbd->object);
                 free(tbd);
                 return;
             }
