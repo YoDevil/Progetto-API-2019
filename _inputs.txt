@@ -1,0 +1,22 @@
+addent "alice"
+addent "bruno"
+addent "carlo"
+addent "dario"
+report
+addrel "carlo" "bruno" "amico_di"
+report
+addrel "carlo" "alice" "amico_di"
+report
+addrel "alice" "bruno" "amico_di"
+report
+addrel "bruno" "dario" "compagno_di"
+report
+delrel "carlo" "alice" "amico_di"
+report
+addrel "carlo" "alice" "compagno_di"
+report
+addrel "carlo" "bruno" "compagno_di"
+report
+delent "alice"
+report
+end
