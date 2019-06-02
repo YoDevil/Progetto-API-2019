@@ -1,7 +1,4 @@
 list_item_t* listht_get_entity_item(listht_t* list, char* key){
-    if(list == NULL)
-        exit(1); // You should not be here
-
     int idx = strhash(key);
     ht_entry_t* walk = list->ht->arr[idx];
     while(walk){
@@ -15,9 +12,6 @@ list_item_t* listht_get_entity_item(listht_t* list, char* key){
 }
 
 void listht_add_entity_unique(listht_t* list, entity_t* entity){
-    if(list == NULL)
-        exit(1); // You should not be here
-
     // List insertion
     list_item_t* new_item;
 
@@ -71,9 +65,6 @@ void listht_free_entity_item(listht_t* list, list_item_t* item){
     // Free ht entry
     int idx = strhash(((entity_t*)item->object)->id);
     ht_entry_t* walk = list->ht->arr[idx];
-    if(walk == NULL){
-        exit(1); // What happened?
-    }
     if(walk->object == item){
         list->ht->arr[idx] = walk->next;
         free(walk);

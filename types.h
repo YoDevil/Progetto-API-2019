@@ -228,9 +228,6 @@ void bstht_free_node(bstht_t* tree, bst_node_t* bst_node, char* (*get_key)(bst_n
     idx = strhash(get_key(bst_node));
 
     walk = tree->ht->arr[idx];
-    if(walk == NULL){
-        exit(1); // What happened?
-    }
     if(walk->object == bst_node){
         tree->ht->arr[idx] = walk->next;
         free(walk);
