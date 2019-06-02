@@ -214,9 +214,10 @@ bst_node_t* bst_remove_node(bstht_t* tree, bst_node_t* z){
     return y;
 }
 
-// HOLY FUCK THIS WAS HARD
-// Not even sure it works
 void bstht_free_node(bstht_t* tree, bst_node_t* bst_node, char* (*get_key)(bst_node_t*)){
+    // Save the key now cause the bst_node->object may change after bst_remove_node
+    char* key = get_key(bst_node);
+
     // Remove from tree
     bst_node_t* deleted = bst_remove_node(tree, bst_node);
 
@@ -225,7 +226,7 @@ void bstht_free_node(bstht_t* tree, bst_node_t* bst_node, char* (*get_key)(bst_n
     int idx;
     ht_entry_t* walk;
 
-    idx = strhash(get_key(bst_node));
+    idx = strhash(key);
 
     walk = tree->ht->arr[idx];
     if(walk->object == bst_node){

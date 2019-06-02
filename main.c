@@ -118,6 +118,8 @@ void del_entity_from_relation_recursive(bst_node_t* relation_node, char* id){
                 walk = walk->next;
             }
 
+            // my_connections_node may have been changed by cleanup_connections(), update it
+            my_connections_node = bstht_get_connections_node(relation->connections, id);
             bstht_free_connections_node(relation->connections, my_connections_node);
         }
 
