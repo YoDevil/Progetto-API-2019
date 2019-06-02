@@ -54,7 +54,8 @@ int main(int argc, char** argv){
             scanf(" \"%[^\"]\" \"%[^\"]\" \"%[^\"]\"", arg1, arg2, arg3);
 
             relation_t* relation = get_relation(relations_tree, arg3);
-            del_connection(relation, arg1, arg2);
+            if(relation)
+                del_connection(relation, arg1, arg2);
 
         } else if(!strcmp(cmd, "report")){
             report(relations_tree);
