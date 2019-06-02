@@ -176,18 +176,18 @@ void add_connection(bstht_t* tree, char* id, entity_t* from, entity_t* to){
         unique = 1;
     } else {
         to_connections = (connections_t*)to_connections_node->object;
+        to_connections->receiving_count++;
+        bstht_update_connections_node(relation->connections, to_connections_node); // Reorder
     }
 
     // Add to the lists
-    if(unique){ // We just created the node, so it already has receiving_count = 1
+    if(unique){
         listht_add_entity_unique(from_connections->giving, to); // Add "to" to "from"'s giving list
         listht_add_entity_unique(to_connections->receiving, from); // Add "from" to "to"'s receiving list
-    } else {    // The node already existed
+    } else {
         unique = listht_add_entity(from_connections->giving, to);
         if(unique){
             listht_add_entity_unique(to_connections->receiving, from);
-            to_connections->receiving_count++;
-            bstht_update_connections_node(relation->connections, to_connections_node); // Reorder
         }
     }
 }
