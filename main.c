@@ -214,7 +214,8 @@ void del_connection(relation_t* relation, char* from, char* to){
                 to_connections->receiving_count--;
 
                 cleanup_connections(relation->connections, from_connections_node); // If is not giving or receiving anything, free it
-                cleanup_connections(relation->connections, to_connections_node); // If is not giving or receiving anything, free it
+                if(from_connections_node != to_connections_node)
+                    cleanup_connections(relation->connections, to_connections_node); // If is not giving or receiving anything, free it
             }
         }
     }
