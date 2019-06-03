@@ -218,6 +218,7 @@ void del_connection(relation_t* relation, char* from, char* to){
     }
 }
 
+int g_found_first = 0;
 // Helper for report()
 int report_node(bst_node_t* relation_node){
     int any = 0;
@@ -232,6 +233,8 @@ int report_node(bst_node_t* relation_node){
             int count = best_connections->receiving_count;
 
             // Print the relation id and the first entity id
+            if(g_found_first)
+                printf(" ");
             printf("\"%s\" \"%s\" ", relation->id, best_connections->me->id);
 
             // If there are more entities with the same number of connections, print them too
@@ -240,7 +243,9 @@ int report_node(bst_node_t* relation_node){
                 printf("\"%s\" ", ((connections_t*)next_best_node->object)->me->id);
                 next_best_node = bst_get_predecessor(next_best_node);
             }
-            printf("%d; ", count);
+            printf("%d;", count);
+
+            g_found_first = 1;
         }
         any |= report_node(relation_node->right);
     }
@@ -248,6 +253,7 @@ int report_node(bst_node_t* relation_node){
 }
 
 void report(bstht_t* tree){
+    g_found_first = 0;
     int any = report_node(tree->root);
     if(!any)
         printf("none");
