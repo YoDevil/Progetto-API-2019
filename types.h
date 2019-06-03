@@ -160,7 +160,8 @@ bst_node_t* bstht_get_node(bstht_t* tree, char* key, char* (*get_key)(bst_node_t
     while(walk){
         bst_node_t* bst_node = (bst_node_t*)walk->object;
 
-        if(!strcmp(get_key(bst_node), key)) return bst_node;
+        if(!strcmp(get_key(bst_node), key))
+            return bst_node;
         walk = walk->next;
     }
     return NULL;

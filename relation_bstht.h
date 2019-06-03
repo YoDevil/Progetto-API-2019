@@ -13,5 +13,5 @@ void bstht_add_relation_unique(bstht_t* tree, relation_t* relation){
 }
 
 bst_node_t* bstht_get_relation_node(bstht_t* tree, char* key){
-    bstht_get_node(tree, key, _rel_key);
+    return bstht_get_node(tree, key, _rel_key);
 }
