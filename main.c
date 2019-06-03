@@ -31,10 +31,7 @@ int main(int argc, char** argv){
 
         if (!strcmp(cmd, "addent")){
             scanf(" \"%[^\"]\"", arg1);
-
-            if(get_entity(entities_table, arg1) == NULL){
-                add_entity(entities_table, arg1);
-            }
+            add_entity(entities_table, arg1);
 
         } else if(!strcmp(cmd, "delent")){
             scanf(" \"%[^\"]\"", arg1);
