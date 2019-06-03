@@ -165,7 +165,6 @@ void add_connection(bstht_t* tree, char* id, entity_t* from, entity_t* to){
         from_connections->receiving = listht_create();
         from_connections->receiving_count = 0;
         from_connections_node = bstht_add_connections_unique(relation->connections, from_connections);
-        unique = 1;
     } else {
         from_connections = (connections_t*)from_connections_node->object;
     }
@@ -183,18 +182,21 @@ void add_connection(bstht_t* tree, char* id, entity_t* from, entity_t* to){
         unique = 1;
     } else {
         to_connections = (connections_t*)to_connections_node->object;
-        to_connections->receiving_count++;
-        bstht_update_connections_node(relation->connections, to_connections_node); // Reorder
     }
 
     // Add to the lists
     if(unique){
+        // We just created a connections_t entry for 'to'
+        // The connection is unique and the node is already in place with receiving_count=1
         listht_add_entity_unique(from_connections->giving, to); // Add "to" to "from"'s giving list
         listht_add_entity_unique(to_connections->receiving, from); // Add "from" to "to"'s receiving list
     } else {
+        // Check if the connection is unique or a duplicate
         unique = listht_add_entity(from_connections->giving, to);
         if(unique){
             listht_add_entity_unique(to_connections->receiving, from);
+            to_connections->receiving_count++;
+            bstht_update_connections_node(relation->connections, to_connections_node); // Reorder
         }
     }
 }
