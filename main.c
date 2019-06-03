@@ -23,7 +23,6 @@ int main(int argc, char** argv){
     char arg2[ID_LEN+1];
     char arg3[ID_LEN+1];
     int ok;
-
     ht_t* entities_table = ht_create();
     bstht_t* relations_tree = bstht_create();
 
@@ -211,12 +210,15 @@ void del_connection(relation_t* relation, char* from, char* to){
             connections_t* to_connections = (connections_t*)to_connections_node->object;
             int existed = listht_free_entity(from_connections->giving, to);
             if(existed){
+                int freed = cleanup_connections(relation->connections, from_connections_node);
+                if(freed)
+                    to_connections_node = bstht_get_connections_node(relation->connections, to); // It may have changed
+
                 listht_free_entity(to_connections->receiving, from);
                 to_connections->receiving_count--;
 
-                cleanup_connections(relation->connections, from_connections_node); // If is not giving or receiving anything, free it
-                if(from_connections_node != to_connections_node)
-                    cleanup_connections(relation->connections, to_connections_node); // If is not giving or receiving anything, free it
+                if(strcmp(from, to)) // If connection was not a loop
+                    cleanup_connections(relation->connections, to_connections_node);
             }
         }
     }
