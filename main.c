@@ -79,10 +79,13 @@ entity_t* get_entity(ht_t* table, char* key){
     return ht_get_entity(table, key);
 }
 
-void cleanup_connections(bstht_t* tree, bst_node_t* connections_node){
+int cleanup_connections(bstht_t* tree, bst_node_t* connections_node){
     connections_t* connections = (connections_t*)connections_node->object;
-    if(connections->receiving->head == NULL && connections->giving->head == NULL)
+    if(connections->receiving->head == NULL && connections->giving->head == NULL){
         bstht_free_connections_node(tree, connections_node);
+        return 1;
+    }
+    return 0;
 }
 
 // Helper for del_entity()
@@ -104,7 +107,9 @@ void del_entity_from_relation_recursive(bst_node_t* relation_node, char* id){
                 other_connections = (connections_t*)other_connections_node->object;
                 other_connections->receiving_count--;
                 listht_free_entity(other_connections->receiving, id); // Remove me from other's receiving list
-                cleanup_connections(relation->connections, other_connections_node); // If is not giving or receiving anything, free it
+                int freed = cleanup_connections(relation->connections, other_connections_node); // If is not giving or receiving anything, free it
+                if(!freed)
+                    bstht_update_connections_node(relation->connections, other_connections_node); // Reorder
                 walk = walk->next;
             }
 
