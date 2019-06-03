@@ -22,24 +22,25 @@ int main(int argc, char** argv){
     char arg1[ID_LEN+1];
     char arg2[ID_LEN+1];
     char arg3[ID_LEN+1];
+    int ok;
 
     ht_t* entities_table = ht_create();
     bstht_t* relations_tree = bstht_create();
 
     while(1){
-        scanf("%s", cmd);
+        ok = scanf("%s", cmd);
 
-        if (!strcmp(cmd, "addent")){
-            scanf(" \"%[^\"]\"", arg1);
+        if (ok && !strcmp(cmd, "addent")){
+            ok = scanf(" \"%[^\"]\"", arg1);
             add_entity(entities_table, arg1);
 
-        } else if(!strcmp(cmd, "delent")){
-            scanf(" \"%[^\"]\"", arg1);
+        } else if(ok && !strcmp(cmd, "delent")){
+            ok = scanf(" \"%[^\"]\"", arg1);
 
             del_entity(entities_table, relations_tree, arg1);
 
-        } else if(!strcmp(cmd, "addrel")){
-            scanf(" \"%[^\"]\" \"%[^\"]\" \"%[^\"]\"", arg1, arg2, arg3);
+        } else if(ok && !strcmp(cmd, "addrel")){
+            ok = scanf(" \"%[^\"]\" \"%[^\"]\" \"%[^\"]\"", arg1, arg2, arg3);
 
             entity_t* entity1 = get_entity(entities_table, arg1);
             entity_t* entity2 = get_entity(entities_table, arg2);
@@ -47,18 +48,21 @@ int main(int argc, char** argv){
             if(entity1 && entity2)
                 add_connection(relations_tree, arg3, entity1, entity2);
 
-        } else if(!strcmp(cmd, "delrel")){
-            scanf(" \"%[^\"]\" \"%[^\"]\" \"%[^\"]\"", arg1, arg2, arg3);
+        } else if(ok && !strcmp(cmd, "delrel")){
+            ok = scanf(" \"%[^\"]\" \"%[^\"]\" \"%[^\"]\"", arg1, arg2, arg3);
 
             relation_t* relation = get_relation(relations_tree, arg3);
             if(relation)
                 del_connection(relation, arg1, arg2);
 
-        } else if(!strcmp(cmd, "report")){
+        } else if(ok && !strcmp(cmd, "report")){
             report(relations_tree);
-        } else if(!strcmp(cmd, "end")){
+        } else if(ok && !strcmp(cmd, "end")){
             break;
         }
+
+        if(!ok)
+            abort();
     }
 
     return 0;
