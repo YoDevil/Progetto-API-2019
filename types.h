@@ -80,6 +80,7 @@ void ht_free_row(ht_t* ht, char* key){
         free(walk);
         walk = tmp;
     }
+    ht->arr[idx] = NULL;
 }
 
 // Somebody needs to call ht_free_row before me
