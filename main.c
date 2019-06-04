@@ -210,15 +210,20 @@ void del_connection(relation_t* relation, char* from, char* to){
             connections_t* to_connections = (connections_t*)to_connections_node->object;
             int existed = listht_free_entity(from_connections->giving, to);
             if(existed){
-                int freed = cleanup_connections(relation->connections, from_connections_node);
-                if(freed)
-                    to_connections_node = bstht_get_connections_node(relation->connections, to); // It may have changed
-
                 listht_free_entity(to_connections->receiving, from);
                 to_connections->receiving_count--;
 
-                if(strcmp(from, to)) // If connection was not a loop
-                    cleanup_connections(relation->connections, to_connections_node);
+                int freed = cleanup_connections(relation->connections, from_connections_node);
+
+                // If connection was not a loop
+                if(from_connections_node != to_connections_node) {
+                    if(freed)
+                        to_connections_node = bstht_get_connections_node(relation->connections, to); // It may have changed
+
+                    freed = cleanup_connections(relation->connections, to_connections_node);
+                    if(!freed)
+                        bstht_update_connections_node(relation->connections, to_connections_node);
+                }
             }
         }
     }
