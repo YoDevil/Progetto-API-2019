@@ -221,9 +221,10 @@ void del_connection(relation_t* relation, char* from, char* to){
                         to_connections_node = bstht_get_connections_node(relation->connections, to); // It may have changed
 
                     freed = cleanup_connections(relation->connections, to_connections_node);
-                    if(!freed)
-                        bstht_update_connections_node(relation->connections, to_connections_node);
                 }
+
+                if(!freed)
+                    bstht_update_connections_node(relation->connections, to_connections_node);
             }
         }
     }
