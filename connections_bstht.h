@@ -22,9 +22,9 @@ bst_node_t* bstht_get_connections_node(bstht_t* tree, char* key){
     return bstht_get_node(tree, key, _conn_key_2);
 }
 
-void bstht_free_connections_node(bstht_t* tree, bst_node_t* bst_node){
+void bstht_free_connections_node(bstht_t* tree, bst_node_t* bst_node, bst_node_t** update_me){
     connections_t* connections = (connections_t*)bst_node->object;
-    bstht_free_node(tree, bst_node, _conn_key_2);
+    bstht_free_node(tree, bst_node, update_me, _conn_key_2);
 
     // Free the node->object
     free_entities_listht(connections->giving);
@@ -32,8 +32,8 @@ void bstht_free_connections_node(bstht_t* tree, bst_node_t* bst_node){
     free(connections);
 }
 
-void bstht_update_connections_node(bstht_t* tree, bst_node_t* bst_node){
-    bstht_update_node(tree, bst_node, _conn_key_2, _conn_key_less_than);
+void bstht_update_connections_node(bstht_t* tree, bst_node_t* bst_node, bst_node_t** update_me){
+    bstht_update_node(tree, bst_node, update_me, _conn_key_2, _conn_key_less_than);
 }
 
 void print_connections_tree(bst_node_t* x){

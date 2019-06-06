@@ -187,8 +187,10 @@ void bst_insert_node(bstht_t* tree, bst_node_t* z, int (*key_less_than)(bst_node
     else y->right = z;
 }
 
-bst_node_t* bst_remove_node(bstht_t* tree, bst_node_t* z){
+bst_node_t* bst_remove_node(bstht_t* tree, bst_node_t* z, bst_node_t** update_me){
     bst_node_t *x, *y;
+    if(update_me && *update_me == z)
+        *update_me = NULL;
 
     if(z->left == NULL || z->right == NULL)
         y = z;
@@ -210,18 +212,22 @@ bst_node_t* bst_remove_node(bstht_t* tree, bst_node_t* z){
     else
         y->parent->right = x;
 
-    if(y != z)
+    if(y != z){
         z->object = y->object;
+
+        if(update_me && *update_me == y)
+                *update_me = z;
+    }
 
     return y;
 }
 
-void bstht_free_node(bstht_t* tree, bst_node_t* bst_node, char* (*get_key)(bst_node_t*)){
+void bstht_free_node(bstht_t* tree, bst_node_t* bst_node, bst_node_t** update_me, char* (*get_key)(bst_node_t*)){
     // Save the key now cause the bst_node->object may change after bst_remove_node
     char* key = get_key(bst_node);
 
     // Remove from tree
-    bst_node_t* deleted = bst_remove_node(tree, bst_node);
+    bst_node_t* deleted = bst_remove_node(tree, bst_node, update_me);
 
     // Remove from ht
     connections_t* connections;
@@ -283,8 +289,13 @@ bst_node_t* bstht_add_unique(bstht_t* tree, void* object, char* (*get_key)(bst_n
     return bst_node;
 }
 
-void bstht_update_node(bstht_t* tree, bst_node_t* bst_node, char* (*get_key)(bst_node_t*), int (*key_less_than)(bst_node_t*, bst_node_t*)){
+void bstht_update_node(bstht_t* tree, bst_node_t* bst_node, bst_node_t** update_me, char* (*get_key)(bst_node_t*), int (*key_less_than)(bst_node_t*, bst_node_t*)){
+    int should_update = update_me ? *update_me == bst_node : 0;
+
     void* object = bst_node->object;
-    bstht_free_node(tree, bst_node, get_key);  // This will not free the object
-    bstht_add_unique(tree, object, get_key, key_less_than);
+    bstht_free_node(tree, bst_node, update_me, get_key);  // This will not free the object
+    bst_node_t* new_node = bstht_add_unique(tree, object, get_key, key_less_than);
+
+    if(should_update)
+        *update_me = new_node;
 }

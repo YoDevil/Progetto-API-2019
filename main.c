@@ -79,10 +79,10 @@ entity_t* get_entity(ht_t* table, char* key){
     return ht_get_entity(table, key);
 }
 
-int cleanup_connections(bstht_t* tree, bst_node_t* connections_node){
+int cleanup_connections(bstht_t* tree, bst_node_t* connections_node, bst_node_t** update_me){
     connections_t* connections = (connections_t*)connections_node->object;
     if(connections->receiving->head == NULL && connections->giving->head == NULL){
-        bstht_free_connections_node(tree, connections_node);
+        bstht_free_connections_node(tree, connections_node, update_me);
         return 1;
     }
     return 0;
@@ -107,9 +107,9 @@ void del_entity_from_relation_recursive(bst_node_t* relation_node, char* id){
                 other_connections = (connections_t*)other_connections_node->object;
                 other_connections->receiving_count--;
                 listht_free_entity(other_connections->receiving, id); // Remove me from other's receiving list
-                int freed = cleanup_connections(relation->connections, other_connections_node); // If is not giving or receiving anything, free it
+                int freed = cleanup_connections(relation->connections, other_connections_node, &my_connections_node); // If is not giving or receiving anything, free it
                 if(!freed)
-                    bstht_update_connections_node(relation->connections, other_connections_node); // Reorder
+                    bstht_update_connections_node(relation->connections, other_connections_node, &my_connections_node); // Reorder
                 walk = walk->next;
             }
 
@@ -119,13 +119,11 @@ void del_entity_from_relation_recursive(bst_node_t* relation_node, char* id){
                 other_connections_node = bstht_get_connections_node(relation->connections, from->id);
                 other_connections = (connections_t*)other_connections_node->object;
                 listht_free_entity(other_connections->giving, id); // Remove me from other's giving list
-                cleanup_connections(relation->connections, other_connections_node); // If is not giving or receiving anything, free it
+                cleanup_connections(relation->connections, other_connections_node, &my_connections_node); // If is not giving or receiving anything, free it
                 walk = walk->next;
             }
 
-            // my_connections_node may have been changed by cleanup_connections(), update it
-            my_connections_node = bstht_get_connections_node(relation->connections, id);
-            bstht_free_connections_node(relation->connections, my_connections_node);
+            bstht_free_connections_node(relation->connections, my_connections_node, NULL);
         }
 
         del_entity_from_relation_recursive(relation_node->left, id);
@@ -196,7 +194,7 @@ void add_connection(bstht_t* tree, char* id, entity_t* from, entity_t* to){
         if(unique){
             listht_add_entity_unique(to_connections->receiving, from);
             to_connections->receiving_count++;
-            bstht_update_connections_node(relation->connections, to_connections_node); // Reorder
+            bstht_update_connections_node(relation->connections, to_connections_node, NULL); // Reorder
         }
     }
 }
@@ -213,18 +211,14 @@ void del_connection(relation_t* relation, char* from, char* to){
                 listht_free_entity(to_connections->receiving, from);
                 to_connections->receiving_count--;
 
-                int freed = cleanup_connections(relation->connections, from_connections_node);
+                int freed = cleanup_connections(relation->connections, from_connections_node, &to_connections_node);
 
                 // If connection was not a loop
-                if(from_connections_node != to_connections_node) {
-                    if(freed)
-                        to_connections_node = bstht_get_connections_node(relation->connections, to); // It may have changed
-
-                    freed = cleanup_connections(relation->connections, to_connections_node);
-                }
+                if(from_connections_node != to_connections_node)
+                    freed = cleanup_connections(relation->connections, to_connections_node, NULL);
 
                 if(!freed)
-                    bstht_update_connections_node(relation->connections, to_connections_node);
+                    bstht_update_connections_node(relation->connections, to_connections_node, NULL);
             }
         }
     }
