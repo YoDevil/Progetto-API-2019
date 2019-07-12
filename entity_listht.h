@@ -1,5 +1,5 @@
 list_item_t* listht_get_entity_item(listht_t* list, char* key){
-    int idx = strhash(key);
+    int idx = strhash(list->ht, key);
     ht_entry_t* walk = list->ht->arr[idx];
     while(walk){
         list_item_t* list_item = (list_item_t*)walk->object;
@@ -26,7 +26,7 @@ void listht_add_entity_unique(listht_t* list, entity_t* entity){
     list->head = new_item;
 
     // HT insertion
-    int idx = strhash(entity->id);
+    int idx = strhash(list->ht, entity->id);
     ht_entry_t* ht_entry = malloc(sizeof(ht_entry_t));
     ht_entry->object = (void*)new_item;
     ht_entry->next = list->ht->arr[idx];
@@ -63,7 +63,7 @@ void listht_free_entity_item(listht_t* list, list_item_t* item){
         item->next->prev = item->prev;
 
     // Free ht entry
-    int idx = strhash(((entity_t*)item->object)->id);
+    int idx = strhash(list->ht, ((entity_t*)item->object)->id);
     ht_entry_t* walk = list->ht->arr[idx];
     if(walk->object == item){
         list->ht->arr[idx] = walk->next;

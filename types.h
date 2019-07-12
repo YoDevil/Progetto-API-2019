@@ -1,5 +1,6 @@
 #define ID_LEN 64
-#define HASH_TABLE_SIZE 2048
+#define BIG_HASH_TABLE_SIZE 2048
+#define SMALL_HASH_TABLE_SIZE 64
 
 typedef struct {
     char id[ID_LEN+1];
@@ -11,7 +12,8 @@ typedef struct ht_entry_s {
 } ht_entry_t; // Chaining
 
 typedef struct {
-    ht_entry_t* arr[HASH_TABLE_SIZE];
+    ht_entry_t** arr;
+    size_t size;
 } ht_t;
 
 typedef struct bst_node_s {
@@ -50,7 +52,7 @@ typedef struct {
 } connections_t;
 
 // http://www.cs.ecu.edu/karl/3300/spr14/Notes/DataStructure/hashtable.html
-int strhash(const char* str)
+int strhash(ht_t* table, const char* str)
 {
     const char* p;
     int         g;
@@ -63,16 +65,18 @@ int strhash(const char* str)
             h = h ^ (g >> 24);
         h = h & ~g;
     }
-    return h%HASH_TABLE_SIZE;
+    return h % (table->size);
 }
 
-ht_t* ht_create(){
-    ht_t* table = calloc(1, sizeof(ht_t));
+ht_t* ht_create(size_t size){
+    ht_t* table = malloc(sizeof(ht_t));
+    table->size = size;
+    table->arr = calloc(size, sizeof(ht_entry_t*));
     return table;
 }
 
 void ht_free_row(ht_t* ht, char* key){
-    int idx = strhash(key);
+    int idx = strhash(ht, key);
     ht_entry_t* walk = ht->arr[idx];
     ht_entry_t* tmp;
     while(walk){
@@ -86,19 +90,20 @@ void ht_free_row(ht_t* ht, char* key){
 // Somebody needs to call ht_free_row before me
 void free_ht(ht_t* ht){
     free(ht->arr);
+    free(ht);
 }
 
-listht_t* listht_create(){
+listht_t* listht_create(size_t size){
     listht_t* list = malloc(sizeof(listht_t));
     list->head = NULL;
-    list->ht = ht_create();
+    list->ht = ht_create(size);
     return list;
 }
 
-bstht_t* bstht_create(){
+bstht_t* bstht_create(size_t size){
     bstht_t* tree = malloc(sizeof(bstht_t));
     tree->root = NULL;
-    tree->ht = ht_create();
+    tree->ht = ht_create(size);
     return tree;
 }
 
@@ -156,7 +161,7 @@ bst_node_t* bst_get_predecessor(bst_node_t* x){
 
 // get from the hash table
 bst_node_t* bstht_get_node(bstht_t* tree, char* key, char* (*get_key)(bst_node_t*)){
-    int idx = strhash(key);
+    int idx = strhash(tree->ht, key);
     ht_entry_t* walk = tree->ht->arr[idx];
     while(walk){
         bst_node_t* bst_node = (bst_node_t*)walk->object;
@@ -234,7 +239,7 @@ void bstht_free_node(bstht_t* tree, bst_node_t* bst_node, bst_node_t** update_me
     int idx;
     ht_entry_t* walk;
 
-    idx = strhash(key);
+    idx = strhash(tree->ht, key);
 
     walk = tree->ht->arr[idx];
     if(walk->object == bst_node){
@@ -258,7 +263,7 @@ void bstht_free_node(bstht_t* tree, bst_node_t* bst_node, bst_node_t** update_me
 
     if(deleted != bst_node){
         connections = (connections_t*)deleted->object;
-        idx = strhash(connections->me->id);
+        idx = strhash(tree->ht, connections->me->id);
 
         walk = tree->ht->arr[idx];
         while(walk){
@@ -280,7 +285,7 @@ bst_node_t* bstht_add_unique(bstht_t* tree, void* object, char* (*get_key)(bst_n
     bst_insert_node(tree, bst_node, key_less_than);
 
     // HT insertion
-    int idx = strhash(get_key(bst_node));
+    int idx = strhash(tree->ht, get_key(bst_node));
     ht_entry_t* ht_entry = malloc(sizeof(ht_entry_t));
     ht_entry->object = (void*)bst_node;
     ht_entry->next = tree->ht->arr[idx];

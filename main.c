@@ -23,8 +23,8 @@ int main(int argc, char** argv){
     char arg2[ID_LEN+1];
     char arg3[ID_LEN+1];
     int ok;
-    ht_t* entities_table = ht_create();
-    bstht_t* relations_tree = bstht_create();
+    ht_t* entities_table = ht_create(BIG_HASH_TABLE_SIZE);
+    bstht_t* relations_tree = bstht_create(BIG_HASH_TABLE_SIZE);
 
     while(1){
         ok = scanf("%s", cmd);
@@ -147,7 +147,7 @@ void add_connection(bstht_t* tree, char* id, entity_t* from, entity_t* to){
     if(bst_node == NULL){
         relation = malloc(sizeof(relation_t));
         strcpy(relation->id, id);
-        relation->connections = bstht_create();
+        relation->connections = bstht_create(BIG_HASH_TABLE_SIZE);
         bstht_add_relation_unique(tree, relation);
     } else {
         relation = (relation_t*)bst_node->object;
@@ -159,8 +159,8 @@ void add_connection(bstht_t* tree, char* id, entity_t* from, entity_t* to){
     if(from_connections_node == NULL){
         from_connections = malloc(sizeof(connections_t));
         from_connections->me = from;
-        from_connections->giving = listht_create();
-        from_connections->receiving = listht_create();
+        from_connections->giving = listht_create(SMALL_HASH_TABLE_SIZE);
+        from_connections->receiving = listht_create(SMALL_HASH_TABLE_SIZE);
         from_connections->receiving_count = 0;
         from_connections_node = bstht_add_connections_unique(relation->connections, from_connections);
     } else {
@@ -173,8 +173,8 @@ void add_connection(bstht_t* tree, char* id, entity_t* from, entity_t* to){
     if(to_connections_node == NULL){
         to_connections = malloc(sizeof(connections_t));
         to_connections->me = to;
-        to_connections->giving = listht_create();
-        to_connections->receiving = listht_create();
+        to_connections->giving = listht_create(SMALL_HASH_TABLE_SIZE);
+        to_connections->receiving = listht_create(SMALL_HASH_TABLE_SIZE);
         to_connections->receiving_count = 1;
         to_connections_node = bstht_add_connections_unique(relation->connections, to_connections);
         unique = 1;
