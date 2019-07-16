@@ -35,11 +35,3 @@ void bstht_free_connections_node(bstht_t* tree, bst_node_t* bst_node, bst_node_t
 void bstht_update_connections_node(bstht_t* tree, bst_node_t* bst_node, bst_node_t** update_me){
     bstht_update_node(tree, bst_node, update_me, _conn_key_2, _conn_key_less_than);
 }
-
-void print_connections_tree(bst_node_t* x){
-    if(x != NULL){
-        print_connections_tree(x->right);
-        printf("%s: %d\n", ((connections_t*)x->object)->me->id, ((connections_t*)x->object)->receiving_count);
-        print_connections_tree(x->left);
-    }
-}

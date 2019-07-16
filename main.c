@@ -4,6 +4,7 @@
 
 #include "types.h"
 #include "entity_ht.h"
+#include "rb_fixups.h"
 #include "relation_bstht.h"
 #include "entity_listht.h"
 #include "connections_bstht.h"
@@ -51,7 +52,7 @@ int main(int argc, char** argv){
             ok = scanf(" \"%[^\"]\" \"%[^\"]\" \"%[^\"]\"", arg1, arg2, arg3);
 
             bst_node_t* relation_node = bstht_get_relation_node(relations_tree, arg3);
-            if(relation_node)
+            if(relation_node != relations_tree->NIL)
                 del_connection(relations_tree, relation_node, arg1, arg2);
 
         } else if(ok && !strcmp(cmd, "report")){
@@ -90,12 +91,12 @@ int cleanup_connections(bstht_t* tree, bst_node_t* connections_node, bst_node_t*
 
 // Helper for del_entity()
 void del_entity_from_relation_recursive(bstht_t* relations_tree, bst_node_t* relation_node, char* id){
-    if(relation_node) {
+    if(relation_node != relations_tree->NIL) {
         relation_t* relation = (relation_t*)relation_node->object;
 
         // Delete all its connections
         bst_node_t* my_connections_node = bstht_get_connections_node(relation->connections, id);
-        if(my_connections_node){
+        if(my_connections_node != relation->connections->NIL){
             connections_t* my_connections = (connections_t*)my_connections_node->object;
             bst_node_t* other_connections_node;
             connections_t* other_connections;
@@ -130,7 +131,7 @@ void del_entity_from_relation_recursive(bstht_t* relations_tree, bst_node_t* rel
         del_entity_from_relation_recursive(relations_tree, relation_node->left, id);
         del_entity_from_relation_recursive(relations_tree, relation_node->right, id);
 
-        if(relation->connections->root == NULL)
+        if(relation->connections->root == relation->connections->NIL)
             bstht_free_relation_node(relations_tree, relation_node, NULL);
 
     }
@@ -149,7 +150,7 @@ void add_connection(bstht_t* tree, char* id, entity_t* from, entity_t* to){
     int unique = 0;
 
     bst_node_t* bst_node = bstht_get_relation_node(tree, id);
-    if(bst_node == NULL){
+    if(bst_node == tree->NIL){
         relation = malloc(sizeof(relation_t));
         strcpy(relation->id, id);
         relation->connections = bstht_create(BIG_HASH_TABLE_SIZE);
@@ -161,7 +162,7 @@ void add_connection(bstht_t* tree, char* id, entity_t* from, entity_t* to){
     // Get or create "from" connections
     bst_node_t* from_connections_node = bstht_get_connections_node(relation->connections, from->id);
     connections_t* from_connections;
-    if(from_connections_node == NULL){
+    if(from_connections_node == relation->connections->NIL){
         from_connections = malloc(sizeof(connections_t));
         from_connections->me = from;
         from_connections->giving = listht_create(SMALL_HASH_TABLE_SIZE);
@@ -175,7 +176,7 @@ void add_connection(bstht_t* tree, char* id, entity_t* from, entity_t* to){
     // Get or create "to" connections
     bst_node_t* to_connections_node = bstht_get_connections_node(relation->connections, to->id);
     connections_t* to_connections;
-    if(to_connections_node == NULL){
+    if(to_connections_node == relation->connections->NIL){
         to_connections = malloc(sizeof(connections_t));
         to_connections->me = to;
         to_connections->giving = listht_create(SMALL_HASH_TABLE_SIZE);
@@ -208,9 +209,9 @@ void del_connection(bstht_t* relations_tree, bst_node_t* relation_node, char* fr
     relation_t* relation = (relation_t*)relation_node->object;
 
     bst_node_t* from_connections_node = bstht_get_connections_node(relation->connections, from);
-    if(from_connections_node != NULL){
+    if(from_connections_node != relation->connections->NIL){
         bst_node_t* to_connections_node = bstht_get_connections_node(relation->connections, to);
-        if(to_connections_node != NULL){
+        if(to_connections_node != relation->connections->NIL){
             connections_t* from_connections = (connections_t*)from_connections_node->object;
             connections_t* to_connections = (connections_t*)to_connections_node->object;
             int existed = listht_free_entity(from_connections->giving, to);
@@ -227,7 +228,7 @@ void del_connection(bstht_t* relations_tree, bst_node_t* relation_node, char* fr
                     bstht_update_connections_node(relation->connections, to_connections_node, NULL);
             }
 
-            if(relation->connections->root == NULL)
+            if(relation->connections->root == relation->connections->NIL)
                 bstht_free_relation_node(relations_tree, relation_node, NULL);
         }
     }
@@ -235,13 +236,13 @@ void del_connection(bstht_t* relations_tree, bst_node_t* relation_node, char* fr
 
 int g_found_first = 0;
 // Helper for report()
-int report_node(bst_node_t* relation_node){
+int report_node(bstht_t* tree, bst_node_t* relation_node){
     int any = 0;
-    if(relation_node != NULL){
-        any |= report_node(relation_node->left);
+    if(relation_node != tree->NIL){
+        any |= report_node(tree, relation_node->left);
 
         relation_t* relation = (relation_t*)relation_node->object;
-        bst_node_t* max_node = bst_get_max(relation->connections->root);
+        bst_node_t* max_node = bst_get_max(relation->connections, relation->connections->root);
         if(max_node){
             any = 1;
             connections_t* best_connections = (connections_t*)max_node->object;
@@ -253,23 +254,23 @@ int report_node(bst_node_t* relation_node){
             printf("\"%s\" \"%s\" ", relation->id, best_connections->me->id);
 
             // If there are more entities with the same number of connections, print them too
-            bst_node_t* next_best_node = bst_get_predecessor(max_node);
-            while(next_best_node && ((connections_t*)next_best_node->object)->receiving_count == count){
+            bst_node_t* next_best_node = bst_get_predecessor(relation->connections, max_node);
+            while(next_best_node != relation->connections->NIL && ((connections_t*)next_best_node->object)->receiving_count == count){
                 printf("\"%s\" ", ((connections_t*)next_best_node->object)->me->id);
-                next_best_node = bst_get_predecessor(next_best_node);
+                next_best_node = bst_get_predecessor(relation->connections, next_best_node);
             }
             printf("%d;", count);
 
             g_found_first = 1;
         }
-        any |= report_node(relation_node->right);
+        any |= report_node(tree, relation_node->right);
     }
     return any;
 }
 
 void report(bstht_t* tree){
     g_found_first = 0;
-    int any = report_node(tree->root);
+    int any = report_node(tree, tree->root);
     if(!any)
         printf("none");
     printf("\n");
@@ -277,14 +278,14 @@ void report(bstht_t* tree){
 
 relation_t* get_relation(bstht_t* tree, char* id){
     bst_node_t* bst_node = bstht_get_relation_node(tree, id);
-    if(bst_node)
+    if(bst_node != tree->NIL)
         return (relation_t*)bst_node->object;
     return NULL;
 }
 
 connections_t* get_connections(relation_t* relation, char* id){
     bst_node_t* bst_node = bstht_get_connections_node(relation->connections, id);
-    if(bst_node)
+    if(bst_node != relation->connections->NIL)
         return (connections_t*)bst_node->object;
     return NULL;
 }

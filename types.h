@@ -2,6 +2,9 @@
 #define BIG_HASH_TABLE_SIZE 2048
 #define SMALL_HASH_TABLE_SIZE 64
 
+#define BLACK 0
+#define RED 1
+
 typedef struct {
     char id[ID_LEN+1];
 } entity_t;
@@ -18,12 +21,14 @@ typedef struct {
 
 typedef struct bst_node_s {
     void* object;
+    int color;
     struct bst_node_s* parent;
     struct bst_node_s* left;
     struct bst_node_s* right;
 } bst_node_t;
 
 typedef struct {
+    bst_node_t* NIL;
     bst_node_t* root;
     ht_t* ht;
 } bstht_t;
@@ -50,6 +55,9 @@ typedef struct {
     listht_t* receiving;    // List of the relations to me
     int receiving_count;    // How many relations to me, key for the bst
 } connections_t;
+
+void rb_insert_fixup(bstht_t*, bst_node_t*);
+void rb_delete_fixup(bstht_t*, bst_node_t*);
 
 // http://www.cs.ecu.edu/karl/3300/spr14/Notes/DataStructure/hashtable.html
 int strhash(ht_t* table, const char* str)
@@ -102,7 +110,15 @@ listht_t* listht_create(size_t size){
 
 bstht_t* bstht_create(size_t size){
     bstht_t* tree = malloc(sizeof(bstht_t));
-    tree->root = NULL;
+    
+    bst_node_t* nil = calloc(1, sizeof(bst_node_t));
+    nil->color = BLACK;
+    nil->parent = nil;
+    nil->left = nil;
+    nil->right = nil;
+    
+    tree->NIL = nil;
+    tree->root = tree->NIL;
     tree->ht = ht_create(size);
     return tree;
 }
@@ -110,55 +126,56 @@ bstht_t* bstht_create(size_t size){
 void free_bstht(bstht_t* tree){
     // Assuming all nodes are freed
     free_ht(tree->ht);
+    free(tree->NIL);
     free(tree);
 }
 
-bst_node_t* bst_get_min(bst_node_t* x){
-    if(x == NULL)
-        return NULL;
+bst_node_t* bst_get_min(bstht_t* tree, bst_node_t* x){
+    if(x == tree->NIL)
+        return tree->NIL;
 
-    while(x->left != NULL)
+    while(x->left != tree->NIL)
         x = x->left;
     return x;
 }
 
-bst_node_t* bst_get_max(bst_node_t* x){
-    if(x == NULL)
-        return NULL;
+bst_node_t* bst_get_max(bstht_t* tree, bst_node_t* x){
+    if(x == tree->NIL)
+        return tree->NIL;
 
-    while(x->right != NULL)
+    while(x->right != tree->NIL)
         x = x->right;
     return x;
 }
 
-bst_node_t* bst_get_successor(bst_node_t* x){
-    if(x == NULL)
-        return NULL;
+bst_node_t* bst_get_successor(bstht_t* tree, bst_node_t* x){
+    if(x == tree->NIL)
+        return tree->NIL;
 
     bst_node_t* y;
 
-    if(x->right != NULL)
-        return bst_get_min(x->right);
+    if(x->right != tree->NIL)
+        return bst_get_min(tree, x->right);
 
     y = x->parent;
-    while(y != NULL && x == y->right){
+    while(y != tree->NIL && x == y->right){
         x = y;
         y = y->parent;
     }
     return y;
 }
 
-bst_node_t* bst_get_predecessor(bst_node_t* x){
-    if(x == NULL)
-        return NULL;
+bst_node_t* bst_get_predecessor(bstht_t* tree, bst_node_t* x){
+    if(x == tree->NIL)
+        return tree->NIL;
 
     bst_node_t* y;
 
-    if(x->left != NULL)
-        return bst_get_max(x->left);
+    if(x->left != tree->NIL)
+        return bst_get_max(tree, x->left);
 
     y = x->parent;
-    while(y != NULL && x == y->left){
+    while(y != tree->NIL && x == y->left){
         x = y;
         y = y->parent;
     }
@@ -176,14 +193,14 @@ bst_node_t* bstht_get_node(bstht_t* tree, char* key, char* (*get_key)(bst_node_t
             return bst_node;
         walk = walk->next;
     }
-    return NULL;
+    return tree->NIL;
 }
 
 void bst_insert_node(bstht_t* tree, bst_node_t* z, int (*key_less_than)(bst_node_t*, bst_node_t*)){
-    bst_node_t* y = NULL;
+    bst_node_t* y = tree->NIL;
     bst_node_t* x = tree->root;
 
-    while(x != NULL){
+    while(x != tree->NIL){
         y = x;
         if(key_less_than(z, x))
             x = x->left;
@@ -191,32 +208,34 @@ void bst_insert_node(bstht_t* tree, bst_node_t* z, int (*key_less_than)(bst_node
             x = x->right;
     }
     z->parent = y;
-    if(y == NULL)
+    if(y == tree->NIL)
         tree->root = z;
     else if(key_less_than(z, y))
         y->left = z;
     else y->right = z;
+    
+    z->color = RED;
+    rb_insert_fixup(tree, z);
 }
 
 bst_node_t* bst_remove_node(bstht_t* tree, bst_node_t* z, bst_node_t** update_me){
     bst_node_t *x, *y;
     if(update_me && *update_me == z)
-        *update_me = NULL;
+        *update_me = tree->NIL;
 
-    if(z->left == NULL || z->right == NULL)
+    if(z->left == tree->NIL || z->right == tree->NIL)
         y = z;
     else
-        y = bst_get_successor(z);
+        y = bst_get_successor(tree, z);
 
-    if(y->left != NULL)
+    if(y->left != tree->NIL)
         x = y->left;
     else
         x = y->right;
 
-    if(x != NULL)
-        x->parent = y->parent;
+    x->parent = y->parent;
 
-    if(y->parent == NULL)
+    if(y->parent == tree->NIL)
         tree->root = x;
     else if(y == y->parent->left)
         y->parent->left = x;
@@ -230,6 +249,8 @@ bst_node_t* bst_remove_node(bstht_t* tree, bst_node_t* z, bst_node_t** update_me
                 *update_me = z;
     }
 
+    if(y->color == BLACK)
+        rb_delete_fixup(tree, x);
     return y;
 }
 
@@ -282,8 +303,11 @@ void bstht_free_node(bstht_t* tree, bst_node_t* bst_node, bst_node_t** update_me
 }
 
 bst_node_t* bstht_add_unique(bstht_t* tree, void* object, char* (*get_key)(bst_node_t*), int (*key_less_than)(bst_node_t*, bst_node_t*)){
-    bst_node_t* bst_node = calloc(1, sizeof(bst_node_t));
+    bst_node_t* bst_node = malloc(sizeof(bst_node_t));
     bst_node->object = object;
+    bst_node->parent = tree->NIL;
+    bst_node->left = tree->NIL;
+    bst_node->right = tree->NIL;
 
     // BST insertion
     bst_insert_node(tree, bst_node, key_less_than);
