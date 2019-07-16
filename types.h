@@ -107,6 +107,12 @@ bstht_t* bstht_create(size_t size){
     return tree;
 }
 
+void free_bstht(bstht_t* tree){
+    // Assuming all nodes are freed
+    free_ht(tree->ht);
+    free(tree);
+}
+
 bst_node_t* bst_get_min(bst_node_t* x){
     if(x == NULL)
         return NULL;
@@ -235,7 +241,6 @@ void bstht_free_node(bstht_t* tree, bst_node_t* bst_node, bst_node_t** update_me
     bst_node_t* deleted = bst_remove_node(tree, bst_node, update_me);
 
     // Remove from ht
-    connections_t* connections;
     int idx;
     ht_entry_t* walk;
 
@@ -262,8 +267,7 @@ void bstht_free_node(bstht_t* tree, bst_node_t* bst_node, bst_node_t** update_me
     }
 
     if(deleted != bst_node){
-        connections = (connections_t*)deleted->object;
-        idx = strhash(tree->ht, connections->me->id);
+        idx = strhash(tree->ht, get_key(deleted));
 
         walk = tree->ht->arr[idx];
         while(walk){

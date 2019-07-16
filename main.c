@@ -14,7 +14,7 @@ void del_entity(ht_t*, bstht_t*, char*);
 void add_connection(bstht_t*, char*, entity_t*, entity_t*);
 relation_t* get_relation(bstht_t*, char*);
 connections_t* get_connections(relation_t*, char*);
-void del_connection(relation_t*, char*, char*);
+void del_connection(bstht_t*, bst_node_t*, char*, char*);
 void report(bstht_t* tree);
 
 int main(int argc, char** argv){
@@ -50,9 +50,9 @@ int main(int argc, char** argv){
         } else if(ok && !strcmp(cmd, "delrel")){
             ok = scanf(" \"%[^\"]\" \"%[^\"]\" \"%[^\"]\"", arg1, arg2, arg3);
 
-            relation_t* relation = get_relation(relations_tree, arg3);
-            if(relation)
-                del_connection(relation, arg1, arg2);
+            bst_node_t* relation_node = bstht_get_relation_node(relations_tree, arg3);
+            if(relation_node)
+                del_connection(relations_tree, relation_node, arg1, arg2);
 
         } else if(ok && !strcmp(cmd, "report")){
             report(relations_tree);
@@ -89,7 +89,7 @@ int cleanup_connections(bstht_t* tree, bst_node_t* connections_node, bst_node_t*
 }
 
 // Helper for del_entity()
-void del_entity_from_relation_recursive(bst_node_t* relation_node, char* id){
+void del_entity_from_relation_recursive(bstht_t* relations_tree, bst_node_t* relation_node, char* id){
     if(relation_node) {
         relation_t* relation = (relation_t*)relation_node->object;
 
@@ -126,14 +126,19 @@ void del_entity_from_relation_recursive(bst_node_t* relation_node, char* id){
             bstht_free_connections_node(relation->connections, my_connections_node, NULL);
         }
 
-        del_entity_from_relation_recursive(relation_node->left, id);
-        del_entity_from_relation_recursive(relation_node->right, id);
+
+        del_entity_from_relation_recursive(relations_tree, relation_node->left, id);
+        del_entity_from_relation_recursive(relations_tree, relation_node->right, id);
+
+        if(relation->connections->root == NULL)
+            bstht_free_relation_node(relations_tree, relation_node, NULL);
+
     }
 }
 
 void del_entity(ht_t* entity_table, bstht_t* relation_tree, char* id){
     // For each relation
-    del_entity_from_relation_recursive(relation_tree->root, id);
+    del_entity_from_relation_recursive(relation_tree, relation_tree->root, id);
 
     // Delete from ht
     ht_free_entity(entity_table, id);
@@ -199,7 +204,9 @@ void add_connection(bstht_t* tree, char* id, entity_t* from, entity_t* to){
     }
 }
 
-void del_connection(relation_t* relation, char* from, char* to){
+void del_connection(bstht_t* relations_tree, bst_node_t* relation_node, char* from, char* to){
+    relation_t* relation = (relation_t*)relation_node->object;
+
     bst_node_t* from_connections_node = bstht_get_connections_node(relation->connections, from);
     if(from_connections_node != NULL){
         bst_node_t* to_connections_node = bstht_get_connections_node(relation->connections, to);
@@ -219,6 +226,9 @@ void del_connection(relation_t* relation, char* from, char* to){
                 if(!freed)
                     bstht_update_connections_node(relation->connections, to_connections_node, NULL);
             }
+
+            if(relation->connections->root == NULL)
+                bstht_free_relation_node(relations_tree, relation_node, NULL);
         }
     }
 }
