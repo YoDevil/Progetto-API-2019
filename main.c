@@ -211,10 +211,9 @@ void del_connection(relation_t* relation, char* from, char* to){
                 listht_free_entity(to_connections->receiving, from);
                 to_connections->receiving_count--;
 
+                int is_loop = from_connections_node == to_connections_node;
                 int freed = cleanup_connections(relation->connections, from_connections_node, &to_connections_node);
-
-                // If connection was not a loop
-                if(from_connections_node != to_connections_node)
+                if(!is_loop)
                     freed = cleanup_connections(relation->connections, to_connections_node, NULL);
 
                 if(!freed)
