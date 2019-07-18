@@ -1,6 +1,6 @@
 #define ID_LEN 32
-#define BIG_HASH_TABLE_SIZE 2048
-#define SMALL_HASH_TABLE_SIZE 64
+#define BIG_HASH_TABLE_SIZE 128
+#define SMALL_HASH_TABLE_SIZE 32
 
 #define BLACK 0
 #define RED 1
