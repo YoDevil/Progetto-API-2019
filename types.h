@@ -62,18 +62,12 @@ void rb_delete_fixup(bstht_t*, bst_node_t*);
 // http://www.cs.ecu.edu/karl/3300/spr14/Notes/DataStructure/hashtable.html
 int strhash(ht_t* table, const char* str)
 {
-    const char* p;
-    int         g;
-    int         h = 0;
+    size_t i, sum;
+    sum = 0;
+    for(i = 0; str[i] != '\0'; i++)
+        sum += (str[i] - '-' + 1) * (i + 1);
 
-    for(p = str; *p != '\0'; p++){
-        h = (h << 4) + (int)(*p);
-        g = h & 0xF0000000L;
-        if(g != 0)
-            h = h ^ (g >> 24);
-        h = h & ~g;
-    }
-    return h % (table->size);
+    return sum % (table->size);
 }
 
 ht_t* ht_create(size_t size){
