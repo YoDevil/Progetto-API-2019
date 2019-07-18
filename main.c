@@ -58,6 +58,7 @@ int main(int argc, char** argv){
         } else if(ok && !strcmp(cmd, "report")){
             report(relations_tree);
         } else if(ok && !strcmp(cmd, "end")){
+            fflush(stdout);
             break;
         }
 
@@ -250,16 +251,24 @@ int report_node(bstht_t* tree, bst_node_t* relation_node){
 
             // Print the relation id and the first entity id
             if(g_found_first)
-                printf(" ");
-            printf("\"%s\" \"%s\" ", relation->id, best_connections->me->id);
+                fputs(" ", stdout);
+            //printf("\"%s\" \"%s\" ", relation->id, best_connections->me->id);
+            fputs("\"", stdout);
+            fputs(relation->id, stdout);
+            fputs("\" \"", stdout);
+            fputs(best_connections->me->id, stdout);
+            fputs("\" ", stdout);
 
             // If there are more entities with the same number of connections, print them too
             bst_node_t* next_best_node = bst_get_predecessor(relation->connections, max_node);
             while(next_best_node != relation->connections->NIL && ((connections_t*)next_best_node->object)->receiving_count == count){
-                printf("\"%s\" ", ((connections_t*)next_best_node->object)->me->id);
+                //printf("\"%s\" ", ((connections_t*)next_best_node->object)->me->id);
+                fputs("\"", stdout);
+                fputs(((connections_t*)next_best_node->object)->me->id, stdout);
+                fputs("\" ", stdout);
                 next_best_node = bst_get_predecessor(relation->connections, next_best_node);
             }
-            printf("%d;", count);
+            fprintf(stdout, "%d;", count);
 
             g_found_first = 1;
         }
