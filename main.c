@@ -168,7 +168,7 @@ void del_entity(ht_t tracked, bst_t* relations_tree, char* id){
     ht_delete(tracked, id);
 }
 
-bst_node_t* g_maximums[100] = {0};
+bst_node_t* g_maximums[1000] = {0};
 int g_len = 0;
 int g_max = 0;
 void tree_walk_for_max_connections(bst_t* tree, bst_node_t* node){
