@@ -144,6 +144,28 @@ void del_all_receiving(bst_t* receiving_tree, char* id){
     }
 }
 
+void update_all_giving_recursive(bst_t* tree, bst_node_t* node, char* from, bst_node_t* to){
+    if(node != tree->NIL){
+        update_all_giving_recursive(tree, node->left, from, to);
+        update_all_giving_recursive(tree, node->right, from, to);
+
+        bst_node_t* other = node->object;
+        bst_node_t* connection = bst_get(((connections_t*)other->object)->receiving, from);
+        connection->object = to;
+    }
+}
+
+void update_all_receiving_recursive(bst_t* tree, bst_node_t* node, char* from, bst_node_t* to){
+    if(node != tree->NIL){
+        update_all_receiving_recursive(tree, node->left, from, to);
+        update_all_receiving_recursive(tree, node->right, from, to);
+
+        bst_node_t* other = node->object;
+        bst_node_t* connection = bst_get(((connections_t*)other->object)->giving, from);
+        connection->object = to;
+    }
+}
+
 void del_entity_from_relation_recursive(bst_t* relations_tree, bst_node_t* relation_node, char* id){
     if(relation_node != relations_tree->NIL){
         del_entity_from_relation_recursive(relations_tree, relation_node->left, id);
@@ -155,8 +177,19 @@ void del_entity_from_relation_recursive(bst_t* relations_tree, bst_node_t* relat
             del_all_giving(((connections_t*)target->object)->giving, id);
             del_all_receiving(((connections_t*)target->object)->receiving, id);
 
-            ((connections_t*)target->object)->receiving_count = 0;
-            // TODO: Remove id from connections_tree
+            free(((connections_t*)target->object)->giving);
+            free(((connections_t*)target->object)->receiving);
+            free((connections_t*)target->object);
+            bst_node_t* tbd = bst_remove(connections_tree, target);
+            if(tbd != target){ // bst's...
+                //target holds the moved node
+                //tbd holds the node that we need to search for
+                update_all_receiving_recursive(((connections_t*)target->object)->receiving, 
+                                        ((connections_t*)target->object)->receiving->root, /*from*/ tbd->key, /*to*/ target);
+                update_all_giving_recursive(((connections_t*)target->object)->giving,
+                                        ((connections_t*)target->object)->giving->root, /*from*/ tbd->key, /*to*/ target);
+            }
+            free(tbd);
         }
     }
 }

@@ -149,12 +149,8 @@ int bst_get_or_alloc_and_insert(bst_node_t** node, bst_t* tree, char* key){
     return 1;
 }
 
-bst_node_t* bst_remove(bst_t* tree, bst_node_t* z/*, bst_node_t** moved*/){
+bst_node_t* bst_remove(bst_t* tree, bst_node_t* z){
     bst_node_t *x, *y;
-/*
-    if(moved)
-        *moved = NULL;
-*/
 
     if(z->left == tree->NIL || z->right == tree->NIL)
         y = z;
@@ -178,10 +174,6 @@ bst_node_t* bst_remove(bst_t* tree, bst_node_t* z/*, bst_node_t** moved*/){
     if(y != z){
         strcpy(z->key, y->key);
         z->object = y->object;
-/*
-        if(moved)
-            *moved = z;
-*/
     }
 
     if(y->color == BLACK)
