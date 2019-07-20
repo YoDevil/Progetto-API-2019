@@ -117,11 +117,11 @@ void del_connection(bst_t* relations_tree, char* rel_id, char* from, char* to){
     }
 }
 
-void del_all_giving_recursive(bst_t* giving_tree, bst_node_t* node, char* id){
-    if(node != giving_tree->NIL){
-        del_all_giving_recursive(giving_tree, node->left, id);
-        del_all_giving_recursive(giving_tree, node->right, id);
-        
+void del_all_giving(bst_t* giving_tree, char* id){
+    bst_node_t* node;
+    while(giving_tree->root != giving_tree->NIL){
+        node = giving_tree->root;
+
         bst_node_t* recipient = node->object;
         bst_node_t* recipient_connection = bst_get(((connections_t*)recipient->object)->receiving, id);
         free(bst_remove(((connections_t*)recipient->object)->receiving, recipient_connection));
@@ -131,11 +131,11 @@ void del_all_giving_recursive(bst_t* giving_tree, bst_node_t* node, char* id){
     }
 }
 
-void del_all_receiving_recursive(bst_t* receiving_tree, bst_node_t* node, char* id){
-    if(node != receiving_tree->NIL){
-        del_all_giving_recursive(receiving_tree, node->left, id);
-        del_all_giving_recursive(receiving_tree, node->right, id);
-        
+void del_all_receiving(bst_t* receiving_tree, char* id){
+    bst_node_t* node;
+    while(receiving_tree->root != receiving_tree->NIL){
+        node = receiving_tree->root;
+
         bst_node_t* sender = node->object;
         bst_node_t* sender_connection = bst_get(((connections_t*)sender->object)->giving, id);
         free(bst_remove(((connections_t*)sender->object)->giving, sender_connection));
@@ -150,16 +150,14 @@ void del_entity_from_relation_recursive(bst_t* relations_tree, bst_node_t* relat
         del_entity_from_relation_recursive(relations_tree, relation_node->right, id);
 
         bst_t* connections_tree = relation_node->object;
-        bst_node_t* sender = bst_get(connections_tree, id);
-        if(sender != connections_tree->NIL){
-            bst_t* giving_tree = ((connections_t*)sender->object)->giving;
-            del_all_giving_recursive(giving_tree, giving_tree->root, id);
-            bst_t* receiving_tree = ((connections_t*)sender->object)->receiving;
-            del_all_receiving_recursive(giving_tree, giving_tree->root, id);
+        bst_node_t* target = bst_get(connections_tree, id);
+        if(target != connections_tree->NIL){
+            del_all_giving(((connections_t*)target->object)->giving, id);
+            del_all_receiving(((connections_t*)target->object)->receiving, id);
 
-            ((connections_t*)sender->object)->receiving_count = 0;
+            ((connections_t*)target->object)->receiving_count = 0;
+            // TODO: Remove id from connections_tree
         }
-        // TODO: Remove relation if empty
     }
 }
 
