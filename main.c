@@ -163,7 +163,7 @@ void del_connection(bst_t* relations_tree, char* rel_id, char* from, char* to){
     }
 }
 
-void del_all_giving(bst_t* giving_tree, char* id){
+void del_all_giving(bst_t* connections_tree, bst_t* giving_tree, char* id){
     bst_node_t* node;
     while(giving_tree->root != giving_tree->NIL){
         node = giving_tree->root;
@@ -173,11 +173,13 @@ void del_all_giving(bst_t* giving_tree, char* id){
         free(bst_remove(((connections_t*)recipient->object)->receiving, recipient_connection));
         free(bst_remove(giving_tree, node));
         ((connections_t*)recipient->object)->receiving_count--;
-        // TODO: Remove relation if empty
+
+        if(strcmp(recipient->key, id) != 0 && !has_connections(recipient))
+            free_connections(connections_tree, recipient);
     }
 }
 
-void del_all_receiving(bst_t* receiving_tree, char* id){
+void del_all_receiving(bst_t* connections_tree, bst_t* receiving_tree, char* id){
     bst_node_t* node;
     while(receiving_tree->root != receiving_tree->NIL){
         node = receiving_tree->root;
@@ -186,7 +188,9 @@ void del_all_receiving(bst_t* receiving_tree, char* id){
         bst_node_t* sender_connection = bst_get(((connections_t*)sender->object)->giving, id);
         free(bst_remove(((connections_t*)sender->object)->giving, sender_connection));
         free(bst_remove(receiving_tree, node));
-        // TODO: Remove entity if empty
+
+        if(strcmp(sender->key, id) != 0 && !has_connections(sender))
+            free_connections(connections_tree, sender);
     }
 }
 
@@ -198,8 +202,12 @@ void del_entity_from_relation_recursive(bst_t* relations_tree, bst_node_t* relat
         bst_t* connections_tree = relation_node->object;
         bst_node_t* target = bst_get(connections_tree, id);
         if(target != connections_tree->NIL){
-            del_all_giving(((connections_t*)target->object)->giving, id);
-            del_all_receiving(((connections_t*)target->object)->receiving, id);
+            del_all_giving(connections_tree, ((connections_t*)target->object)->giving, id);
+            // target may have moved as a result of some other deletion in the tree
+            target = bst_get(connections_tree, id);
+            del_all_receiving(connections_tree, ((connections_t*)target->object)->receiving, id);
+            // target may have moved as a result of some other deletion in the tree
+            target = bst_get(connections_tree, id);
 
             free_connections(connections_tree, target);
         }
