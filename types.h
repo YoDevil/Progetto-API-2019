@@ -10,7 +10,7 @@ typedef struct ht_entry_s {
 typedef ht_entry_t* ht_t[HT_SIZE];
 
 typedef struct bst_node_s {
-    char key[ID_LEN+1];
+    char* key;
     void* object;
     struct bst_node_s* parent;
     struct bst_node_s* left;

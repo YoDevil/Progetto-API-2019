@@ -6,6 +6,7 @@
 #include "ht.h"
 #include "bst.h"
 
+char* my_strdup(const char*);
 connections_t* alloc_connections();
 relation_t* alloc_relation();
 void insertion_sort(bst_node_t*[], int);
@@ -21,7 +22,7 @@ int main(){
     char arg2[ID_LEN+1];
     char arg3[ID_LEN+1];
     int ok;
-           
+
     ht_t tracked = {0};
     bst_t* relations_tree = bst_create();
 
@@ -34,18 +35,21 @@ int main(){
 
         } else if(ok && !strcmp(cmd, "delent")){
             ok = scanf(" \"%[^\"]\"", arg1);
-
-            del_entity(tracked, relations_tree, arg1);
+            if(ht_search(tracked, arg1))
+                del_entity(tracked, relations_tree, arg1);
 
         } else if(ok && !strcmp(cmd, "addrel")){
             ok = scanf(" \"%[^\"]\" \"%[^\"]\" \"%[^\"]\"", arg1, arg2, arg3);
-
-            if(ht_search(tracked, arg1) && ht_search(tracked, arg2))
-                add_connection(relations_tree, arg3, arg1, arg2);
+            ht_entry_t* entity1 = ht_search(tracked, arg1);
+            ht_entry_t* entity2 = ht_search(tracked, arg2);
+            if(entity1 && entity2)
+                add_connection(relations_tree, arg3, entity1->key, entity2->key);
 
         } else if(ok && !strcmp(cmd, "delrel")){
             ok = scanf(" \"%[^\"]\" \"%[^\"]\" \"%[^\"]\"", arg1, arg2, arg3);
-            if(ht_search(tracked, arg1) && ht_search(tracked, arg2))
+            ht_entry_t* entity1 = ht_search(tracked, arg1);
+            ht_entry_t* entity2 = ht_search(tracked, arg2);
+            if(entity1 && entity2)
                 del_connection(relations_tree, arg3, arg1, arg2);
 
         } else if(ok && !strcmp(cmd, "report")){
@@ -71,9 +75,12 @@ void add_entity(ht_t tracked, char* id){
 void add_connection(bst_t* relations_tree, char* rel_id, char* from, char* to){
     // Get relation
     bst_node_t* relation_node;
-    int new = bst_get_or_alloc_and_insert(&relation_node, relations_tree, rel_id);
+    char* rel_key = my_strdup(rel_id);
+    int new = bst_get_or_alloc_and_insert(&relation_node, relations_tree, rel_key);
     if(new)
         relation_node->object = alloc_relation();
+    else
+        free(rel_key);
 
     // Get sender and recipient
     relation_t* relation = relation_node->object;
@@ -85,7 +92,7 @@ void add_connection(bst_t* relations_tree, char* rel_id, char* from, char* to){
     new = bst_get_or_alloc_and_insert(&recipient, relation->connections_tree, to);
     if(new)
         recipient->object = alloc_connections();
-    
+
     bst_node_t* other;
     new = bst_get_or_alloc_and_insert(&other, ((connections_t*)sender->object)->giving, to);
     if(new){
@@ -345,4 +352,10 @@ void insertion_sort(bst_node_t* arr[], int len){
         arr[i-1] = tmp;
         i--;
     }
+}
+
+char* my_strdup(const char* str){
+    char* copy = malloc((ID_LEN+1) * sizeof(char));
+    strcpy(copy, str);
+    return copy;
 }

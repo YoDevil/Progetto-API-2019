@@ -12,6 +12,7 @@ bst_t* bst_create(){
     nil->parent = nil;
     nil->left = nil;
     nil->right = nil;
+    nil->key = NULL;
 
     tree->NIL = nil;
     tree->root = tree->NIL;
@@ -20,7 +21,7 @@ bst_t* bst_create(){
 
 bst_node_t* bst_alloc_node(bst_t* tree, char* key){
     bst_node_t* node = malloc(sizeof(bst_node_t));
-    strcpy(node->key, key);
+    node->key = key;
     node->left = tree->NIL;
     node->right = tree->NIL;
     node->parent = tree->NIL;
@@ -172,7 +173,7 @@ bst_node_t* bst_remove(bst_t* tree, bst_node_t* z){
         y->parent->right = x;
 
     if(y != z){
-        strcpy(z->key, y->key);
+        z->key = y->key;
         z->object = y->object;
     }
 

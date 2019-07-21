@@ -7,15 +7,15 @@ int strhash(const char* str) {
     return sum % HT_SIZE;
 }
 
-int ht_search(ht_t ht, char* key){
+ht_entry_t* ht_search(ht_t ht, char* key){
     int idx = strhash(key);
     ht_entry_t* walk = ht[idx];
     while(walk != NULL){
         if(!strcmp(walk->key, key))
-            return 1;
+            return walk;
         walk = walk->next;
     }
-    return 0;
+    return NULL;
 }
 
 void ht_insert(ht_t ht, char* key){
