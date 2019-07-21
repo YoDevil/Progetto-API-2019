@@ -186,9 +186,11 @@ void del_connection(bst_t* relations_tree, char* rel_id, char* from, char* to){
     }
 }
 
-void del_all_giving(relation_t* relation, bst_t* giving_tree, char* id){
+int del_all_giving(relation_t* relation, bst_t* giving_tree, char* id){
+    int may_have_moved = 0;
     bst_node_t* node;
     while(giving_tree->root != giving_tree->NIL){
+        may_have_moved = 1;
         node = giving_tree->root;
 
         bst_node_t* recipient = node->object;
@@ -203,11 +205,14 @@ void del_all_giving(relation_t* relation, bst_t* giving_tree, char* id){
         if(strcmp(recipient->key, id) != 0 && !has_connections(recipient))
             free_connections(relation, recipient);
     }
+    return may_have_moved;
 }
 
-void del_all_receiving(relation_t* relation, bst_t* receiving_tree, char* id){
+int del_all_receiving(relation_t* relation, bst_t* receiving_tree, char* id){
+    int may_have_moved = 0;
     bst_node_t* node;
     while(receiving_tree->root != receiving_tree->NIL){
+        may_have_moved = 1;
         node = receiving_tree->root;
 
         bst_node_t* sender = node->object;
@@ -221,6 +226,7 @@ void del_all_receiving(relation_t* relation, bst_t* receiving_tree, char* id){
         if(strcmp(sender->key, id) != 0 && !has_connections(sender))
             free_connections(relation, sender);
     }
+    return may_have_moved;
 }
 
 void del_entity_from_relation_recursive(bst_t* relations_tree, bst_node_t* relation_node, char* id){
@@ -234,12 +240,12 @@ void del_entity_from_relation_recursive(bst_t* relations_tree, bst_node_t* relat
             if(relation->record.max == ((connections_t*)target->object)->receiving_count)
                 relation->record.dirty = 1;
 
-            del_all_giving(relation, ((connections_t*)target->object)->giving, id);
-            // target may have moved as a result of some other deletion in the tree
-            target = bst_get(relation->connections_tree, id);
-            del_all_receiving(relation, ((connections_t*)target->object)->receiving, id);
-            // target may have moved as a result of some other deletion in the tree
-            target = bst_get(relation->connections_tree, id);
+            int target_may_have_moved = del_all_giving(relation, ((connections_t*)target->object)->giving, id);
+            if(target_may_have_moved)
+                target = bst_get(relation->connections_tree, id);
+            target_may_have_moved = del_all_receiving(relation, ((connections_t*)target->object)->receiving, id);
+            if(target_may_have_moved)
+                target = bst_get(relation->connections_tree, id);
 
             free_connections(relation, target);
         }
