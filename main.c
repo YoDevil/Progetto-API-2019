@@ -7,6 +7,8 @@
 #include "bst.h"
 
 connections_t* alloc_connections();
+relation_t* alloc_relation();
+void insertion_sort(bst_node_t*[], int);
 void add_entity(ht_t, char*);
 void del_entity(ht_t, bst_t*, char*);
 void add_connection(bst_t*, char*, char*, char*);
@@ -71,16 +73,16 @@ void add_connection(bst_t* relations_tree, char* rel_id, char* from, char* to){
     bst_node_t* relation_node;
     int new = bst_get_or_alloc_and_insert(&relation_node, relations_tree, rel_id);
     if(new)
-        relation_node->object = bst_create();
+        relation_node->object = alloc_relation();
 
     // Get sender and recipient
-    bst_t* connections_tree = relation_node->object;
+    relation_t* relation = relation_node->object;
     bst_node_t* sender;
-    new = bst_get_or_alloc_and_insert(&sender, connections_tree, from);
+    new = bst_get_or_alloc_and_insert(&sender, relation->connections_tree, from);
     if(new)
         sender->object = alloc_connections();
     bst_node_t* recipient;
-    new = bst_get_or_alloc_and_insert(&recipient, connections_tree, to);
+    new = bst_get_or_alloc_and_insert(&recipient, relation->connections_tree, to);
     if(new)
         recipient->object = alloc_connections();
     
@@ -93,6 +95,16 @@ void add_connection(bst_t* relations_tree, char* rel_id, char* from, char* to){
         other->object = sender;
         bst_insert(((connections_t*)recipient->object)->receiving, other);
         ((connections_t*)recipient->object)->receiving_count++;
+
+        if(!relation->record.dirty && ((connections_t*)recipient->object)->receiving_count >= relation->record.max){
+            if(((connections_t*)recipient->object)->receiving_count > relation->record.max){
+                relation->record.max = ((connections_t*)recipient->object)->receiving_count;
+                relation->record.len = 0;
+            }
+            relation->record.len++;
+            relation->record.champions[relation->record.len-1] = recipient;
+            insertion_sort(relation->record.champions, relation->record.len);
+        }
     }
 }
 
@@ -118,11 +130,11 @@ void update_all_receiving_recursive(bst_t* tree, bst_node_t* node, char* from, b
     }
 }
 
-void free_connections(bst_t* connections_tree, bst_node_t* target){
+void free_connections(relation_t* relation, bst_node_t* target){
     free(((connections_t*)target->object)->giving);
     free(((connections_t*)target->object)->receiving);
     free((connections_t*)target->object);
-    bst_node_t* tbd = bst_remove(connections_tree, target);
+    bst_node_t* tbd = bst_remove(relation->connections_tree, target);
     if(tbd != target){ // bst's...
         //target holds the moved node
         //tbd holds the node that we need to search for
@@ -130,6 +142,7 @@ void free_connections(bst_t* connections_tree, bst_node_t* target){
                                 ((connections_t*)target->object)->receiving->root, /*from*/ tbd->key, /*to*/ target);
         update_all_giving_recursive(((connections_t*)target->object)->giving,
                                 ((connections_t*)target->object)->giving->root, /*from*/ tbd->key, /*to*/ target);
+        relation->record.dirty = 1;
     }
     free(tbd);
 }
@@ -142,10 +155,10 @@ int has_connections(bst_node_t* target){
 void del_connection(bst_t* relations_tree, char* rel_id, char* from, char* to){
     bst_node_t* relation_node = bst_get(relations_tree, rel_id);
     if(relation_node != relations_tree->NIL){
-        bst_t* connections_tree = relation_node->object;
+        relation_t* relation = relation_node->object;
         bst_node_t *sender, *recipient;
-        sender = bst_get(connections_tree, from);
-        if(sender != connections_tree->NIL){
+        sender = bst_get(relation->connections_tree, from);
+        if(sender != relation->connections_tree->NIL){
             bst_node_t *sender_connection, *recipient_connection;
             sender_connection = bst_get(((connections_t*)sender->object)->giving, to);
             if(sender_connection != ((connections_t*)sender->object)->giving->NIL){
@@ -154,16 +167,19 @@ void del_connection(bst_t* relations_tree, char* rel_id, char* from, char* to){
 
                 free(bst_remove(((connections_t*)sender->object)->giving, sender_connection));
                 free(bst_remove(((connections_t*)recipient->object)->receiving, recipient_connection));
+                if(((connections_t*)recipient->object)->receiving_count == relation->record.max)
+                    relation->record.dirty = 1;
+
                 ((connections_t*)recipient->object)->receiving_count--;
 
                 if(!has_connections(recipient))
-                    free_connections(connections_tree, recipient);
+                    free_connections(relation, recipient);
             }
         }
     }
 }
 
-void del_all_giving(bst_t* connections_tree, bst_t* giving_tree, char* id){
+void del_all_giving(relation_t* relation, bst_t* giving_tree, char* id){
     bst_node_t* node;
     while(giving_tree->root != giving_tree->NIL){
         node = giving_tree->root;
@@ -172,14 +188,17 @@ void del_all_giving(bst_t* connections_tree, bst_t* giving_tree, char* id){
         bst_node_t* recipient_connection = bst_get(((connections_t*)recipient->object)->receiving, id);
         free(bst_remove(((connections_t*)recipient->object)->receiving, recipient_connection));
         free(bst_remove(giving_tree, node));
-        ((connections_t*)recipient->object)->receiving_count--;
 
+        if(relation->record.max == ((connections_t*)recipient->object)->receiving_count)
+            relation->record.dirty = 1;
+
+        ((connections_t*)recipient->object)->receiving_count--;
         if(strcmp(recipient->key, id) != 0 && !has_connections(recipient))
-            free_connections(connections_tree, recipient);
+            free_connections(relation, recipient);
     }
 }
 
-void del_all_receiving(bst_t* connections_tree, bst_t* receiving_tree, char* id){
+void del_all_receiving(relation_t* relation, bst_t* receiving_tree, char* id){
     bst_node_t* node;
     while(receiving_tree->root != receiving_tree->NIL){
         node = receiving_tree->root;
@@ -189,8 +208,11 @@ void del_all_receiving(bst_t* connections_tree, bst_t* receiving_tree, char* id)
         free(bst_remove(((connections_t*)sender->object)->giving, sender_connection));
         free(bst_remove(receiving_tree, node));
 
+        if(relation->record.max == ((connections_t*)sender->object)->receiving_count)
+            relation->record.dirty = 1;
+
         if(strcmp(sender->key, id) != 0 && !has_connections(sender))
-            free_connections(connections_tree, sender);
+            free_connections(relation, sender);
     }
 }
 
@@ -199,17 +221,20 @@ void del_entity_from_relation_recursive(bst_t* relations_tree, bst_node_t* relat
         del_entity_from_relation_recursive(relations_tree, relation_node->left, id);
         del_entity_from_relation_recursive(relations_tree, relation_node->right, id);
 
-        bst_t* connections_tree = relation_node->object;
-        bst_node_t* target = bst_get(connections_tree, id);
-        if(target != connections_tree->NIL){
-            del_all_giving(connections_tree, ((connections_t*)target->object)->giving, id);
-            // target may have moved as a result of some other deletion in the tree
-            target = bst_get(connections_tree, id);
-            del_all_receiving(connections_tree, ((connections_t*)target->object)->receiving, id);
-            // target may have moved as a result of some other deletion in the tree
-            target = bst_get(connections_tree, id);
+        relation_t* relation = relation_node->object;
+        bst_node_t* target = bst_get(relation->connections_tree, id);
+        if(target != relation->connections_tree->NIL){
+            if(relation->record.max == ((connections_t*)target->object)->receiving_count)
+                relation->record.dirty = 1;
 
-            free_connections(connections_tree, target);
+            del_all_giving(relation, ((connections_t*)target->object)->giving, id);
+            // target may have moved as a result of some other deletion in the tree
+            target = bst_get(relation->connections_tree, id);
+            del_all_receiving(relation, ((connections_t*)target->object)->receiving, id);
+            // target may have moved as a result of some other deletion in the tree
+            target = bst_get(relation->connections_tree, id);
+
+            free_connections(relation, target);
         }
     }
 }
@@ -221,28 +246,31 @@ void del_entity(ht_t tracked, bst_t* relations_tree, char* id){
     ht_delete(tracked, id);
 }
 
-bst_node_t* g_maximums[1000] = {0};
-int g_len = 0;
-int g_max = 0;
-void tree_walk_for_max_connections(bst_t* tree, bst_node_t* node){
+void tree_walk_for_max_connections(relation_t* relation, bst_t* tree, bst_node_t* node){
     if(node != tree->NIL){
-        tree_walk_for_max_connections(tree, node->left);
+        tree_walk_for_max_connections(relation, tree, node->left);
 
         connections_t* connections = node->object;
         int count = connections->receiving_count;
         if(count > 0){
-            if(count == g_max){
-                g_len++;
-                g_maximums[g_len-1] = node;
-            } else if(count > g_max){
-                g_max = count;
-                g_len = 1;
-                g_maximums[g_len-1] = node;
+            if(count == relation->record.max){
+                relation->record.len++;
+                relation->record.champions[relation->record.len-1] = node;
+            } else if(count > relation->record.max){
+                relation->record.max = count;
+                relation->record.len = 1;
+                relation->record.champions[relation->record.len-1] = node;
             }
         }
 
-        tree_walk_for_max_connections(tree, node->right);
+        tree_walk_for_max_connections(relation, tree, node->right);
     }
+}
+
+void compute_champions(relation_t* relation){
+    relation->record.max = 0;
+    relation->record.len = 0;
+    tree_walk_for_max_connections(relation, relation->connections_tree, relation->connections_tree->root);
 }
 
 // Helper for report()
@@ -252,11 +280,13 @@ int report_node_inorder(bst_t* tree, bst_node_t* relation_node){
     if(relation_node != tree->NIL){
         any |= report_node_inorder(tree, relation_node->left);
 
-        bst_t* connections_tree = relation_node->object;
-        g_max = 0;
-        g_len = 0;
-        tree_walk_for_max_connections(connections_tree, connections_tree->root);
-        if(g_len > 0){
+        relation_t* relation = relation_node->object;
+        if(relation->record.dirty){
+            compute_champions(relation);
+            relation->record.dirty = 0;
+        }
+
+        if(relation->record.len > 0){
             // Print
             if(g_found_first)
                 fputs(" ", stdout);
@@ -265,12 +295,12 @@ int report_node_inorder(bst_t* tree, bst_node_t* relation_node){
             fputs(relation_node->key, stdout);
             fputs("\" ", stdout);
             any = 1;
-            for(int i = 0; i < g_len; i++){
+            for(int i = 0; i < relation->record.len; i++){
                 fputs("\"", stdout);
-                fputs(g_maximums[i]->key, stdout);
+                fputs(relation->record.champions[i]->key, stdout);
                 fputs("\" ", stdout);
             }
-            fprintf(stdout, "%d;", g_max);
+            fprintf(stdout, "%d;", relation->record.max);
 
             g_found_first = 1;
         }
@@ -287,10 +317,32 @@ void report(bst_t* relations_tree){
     printf("\n");
 }
 
+relation_t* alloc_relation(){
+    relation_t* rel = malloc(sizeof(relation_t));
+    rel->record.max = 0;
+    rel->record.len = 0;
+    rel->record.dirty = 0;
+    rel->connections_tree = bst_create();
+    return rel;
+}
+
 connections_t* alloc_connections(){
     connections_t* conn = malloc(sizeof(connections_t));
     conn->giving = bst_create();
     conn->receiving = bst_create();
     conn->receiving_count = 0;
     return conn;
+}
+
+// This will always be O(n) time, since the array is always almost-sorted except the last element
+// By chosing the last element as the pivot, we can linearly sort the array.
+void insertion_sort(bst_node_t* arr[], int len){
+    int i = len - 1;
+    bst_node_t* tmp;
+    while(i > 0 && strcmp(arr[i-1]->key, arr[i]->key) > 0){
+        tmp = arr[i];
+        arr[i] = arr[i-1];
+        arr[i-1] = tmp;
+        i--;
+    }
 }
