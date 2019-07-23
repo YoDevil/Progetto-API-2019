@@ -23,6 +23,14 @@ int main(){
     char arg3[ID_LEN+1];
     int ok;
 
+    // global NIL node initialization
+    NIL = malloc(sizeof(bst_node_t));
+    NIL->color = BLACK;
+    NIL->parent = NIL;
+    NIL->left = NIL;
+    NIL->right = NIL;
+    NIL->key = NULL;
+
     ht_t tracked = {0};
     bst_t* relations_tree = bst_create();
 
@@ -98,7 +106,7 @@ void add_connection(bst_t* relations_tree, char* rel_id, char* from, char* to){
     if(new){
         other->object = recipient;
 
-        other = bst_alloc_node(((connections_t*)recipient->object)->receiving, from);
+        other = bst_alloc_node(from);
         other->object = sender;
         bst_insert(((connections_t*)recipient->object)->receiving, other);
         ((connections_t*)recipient->object)->receiving_count++;
@@ -116,7 +124,7 @@ void add_connection(bst_t* relations_tree, char* rel_id, char* from, char* to){
 }
 
 void update_all_giving_recursive(bst_t* tree, bst_node_t* node, char* from, bst_node_t* to){
-    if(node != tree->NIL){
+    if(node != NIL){
         update_all_giving_recursive(tree, node->left, from, to);
         update_all_giving_recursive(tree, node->right, from, to);
 
@@ -127,7 +135,7 @@ void update_all_giving_recursive(bst_t* tree, bst_node_t* node, char* from, bst_
 }
 
 void update_all_receiving_recursive(bst_t* tree, bst_node_t* node, char* from, bst_node_t* to){
-    if(node != tree->NIL){
+    if(node != NIL){
         update_all_receiving_recursive(tree, node->left, from, to);
         update_all_receiving_recursive(tree, node->right, from, to);
 
@@ -155,20 +163,20 @@ void free_connections(relation_t* relation, bst_node_t* target){
 }
 
 int has_connections(bst_node_t* target){
-    return ((connections_t*)target->object)->giving->root != ((connections_t*)target->object)->giving->NIL ||
-           ((connections_t*)target->object)->receiving->root != ((connections_t*)target->object)->receiving->NIL;
+    return ((connections_t*)target->object)->giving->root != NIL ||
+           ((connections_t*)target->object)->receiving->root != NIL;
 }
 
 void del_connection(bst_t* relations_tree, char* rel_id, char* from, char* to){
     bst_node_t* relation_node = bst_get(relations_tree, rel_id);
-    if(relation_node != relations_tree->NIL){
+    if(relation_node != NIL){
         relation_t* relation = relation_node->object;
         bst_node_t *sender, *recipient;
         sender = bst_get(relation->connections_tree, from);
-        if(sender != relation->connections_tree->NIL){
+        if(sender != NIL){
             bst_node_t *sender_connection, *recipient_connection;
             sender_connection = bst_get(((connections_t*)sender->object)->giving, to);
-            if(sender_connection != ((connections_t*)sender->object)->giving->NIL){
+            if(sender_connection != NIL){
                 recipient = sender_connection->object;
                 recipient_connection = bst_get(((connections_t*)recipient->object)->receiving, from); // If this is NIL something bad happened...
 
@@ -189,7 +197,7 @@ void del_connection(bst_t* relations_tree, char* rel_id, char* from, char* to){
 int del_all_giving(relation_t* relation, bst_t* giving_tree, char* id){
     int may_have_moved = 0;
     bst_node_t* node;
-    while(giving_tree->root != giving_tree->NIL){
+    while(giving_tree->root != NIL){
         may_have_moved = 1;
         node = giving_tree->root;
 
@@ -211,7 +219,7 @@ int del_all_giving(relation_t* relation, bst_t* giving_tree, char* id){
 int del_all_receiving(relation_t* relation, bst_t* receiving_tree, char* id){
     int may_have_moved = 0;
     bst_node_t* node;
-    while(receiving_tree->root != receiving_tree->NIL){
+    while(receiving_tree->root != NIL){
         may_have_moved = 1;
         node = receiving_tree->root;
 
@@ -230,13 +238,13 @@ int del_all_receiving(relation_t* relation, bst_t* receiving_tree, char* id){
 }
 
 void del_entity_from_relation_recursive(bst_t* relations_tree, bst_node_t* relation_node, char* id){
-    if(relation_node != relations_tree->NIL){
+    if(relation_node != NIL){
         del_entity_from_relation_recursive(relations_tree, relation_node->left, id);
         del_entity_from_relation_recursive(relations_tree, relation_node->right, id);
 
         relation_t* relation = relation_node->object;
         bst_node_t* target = bst_get(relation->connections_tree, id);
-        if(target != relation->connections_tree->NIL){
+        if(target != NIL){
             if(relation->record.max == ((connections_t*)target->object)->receiving_count)
                 relation->record.dirty = 1;
 
@@ -260,7 +268,7 @@ void del_entity(ht_t tracked, bst_t* relations_tree, char* id){
 }
 
 void tree_walk_for_max_connections(relation_t* relation, bst_t* tree, bst_node_t* node){
-    if(node != tree->NIL){
+    if(node != NIL){
         tree_walk_for_max_connections(relation, tree, node->left);
 
         connections_t* connections = node->object;
@@ -290,7 +298,7 @@ void compute_champions(relation_t* relation){
 int g_found_first = 0;
 int report_node_inorder(bst_t* tree, bst_node_t* relation_node){
     int any = 0;
-    if(relation_node != tree->NIL){
+    if(relation_node != NIL){
         any |= report_node_inorder(tree, relation_node->left);
 
         relation_t* relation = relation_node->object;

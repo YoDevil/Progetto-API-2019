@@ -4,104 +4,97 @@
 void rb_insert_fixup(bst_t*, bst_node_t*);
 void rb_delete_fixup(bst_t* tree, bst_node_t* x);
 
+bst_node_t* NIL;
+
 bst_t* bst_create(){
     bst_t* tree = malloc(sizeof(bst_t));
-
-    bst_node_t* nil = malloc(sizeof(bst_node_t));
-    nil->color = BLACK;
-    nil->parent = nil;
-    nil->left = nil;
-    nil->right = nil;
-    nil->key = NULL;
-
-    tree->NIL = nil;
-    tree->root = tree->NIL;
+    tree->root = NIL;
     return tree;
 }
 
-bst_node_t* bst_alloc_node(bst_t* tree, char* key){
+bst_node_t* bst_alloc_node(char* key){
     bst_node_t* node = malloc(sizeof(bst_node_t));
     node->key = key;
-    node->left = tree->NIL;
-    node->right = tree->NIL;
-    node->parent = tree->NIL;
+    node->left = NIL;
+    node->right = NIL;
+    node->parent = NIL;
     return node;
 }
 
-bst_node_t* bst_get_min(bst_t* tree, bst_node_t* x){
-    if(x == tree->NIL)
-        return tree->NIL;
+bst_node_t* bst_get_min(bst_node_t* x){
+    if(x == NIL)
+        return NIL;
 
-    while(x->left != tree->NIL)
+    while(x->left != NIL)
         x = x->left;
     return x;
 }
 
-bst_node_t* bst_get_max(bst_t* tree, bst_node_t* x){
-    if(x == tree->NIL)
-        return tree->NIL;
+bst_node_t* bst_get_max(bst_node_t* x){
+    if(x == NIL)
+        return NIL;
 
-    while(x->right != tree->NIL)
+    while(x->right != NIL)
         x = x->right;
     return x;
 }
 
-bst_node_t* bst_get_successor(bst_t* tree, bst_node_t* x){
-    if(x == tree->NIL)
-        return tree->NIL;
+bst_node_t* bst_get_successor(bst_node_t* x){
+    if(x == NIL)
+        return NIL;
 
     bst_node_t* y;
 
-    if(x->right != tree->NIL)
-        return bst_get_min(tree, x->right);
+    if(x->right != NIL)
+        return bst_get_min(x->right);
 
     y = x->parent;
-    while(y != tree->NIL && x == y->right){
+    while(y != NIL && x == y->right){
         x = y;
         y = y->parent;
     }
     return y;
 }
 
-bst_node_t* bst_get_predecessor(bst_t* tree, bst_node_t* x){
-    if(x == tree->NIL)
-        return tree->NIL;
+bst_node_t* bst_get_predecessor(bst_node_t* x){
+    if(x == NIL)
+        return NIL;
 
     bst_node_t* y;
 
-    if(x->left != tree->NIL)
-        return bst_get_max(tree, x->left);
+    if(x->left != NIL)
+        return bst_get_max(x->left);
 
     y = x->parent;
-    while(y != tree->NIL && x == y->left){
+    while(y != NIL && x == y->left){
         x = y;
         y = y->parent;
     }
     return y;
 }
 
-bst_node_t* bst_search_recursive(bst_t* tree, bst_node_t* x, char* key){
-    if(x == tree->NIL)
+bst_node_t* bst_search_recursive(bst_node_t* x, char* key){
+    if(x == NIL)
         return x;
 
     int cmp = strcmp(key, x->key);
     if(cmp == 0)
         return x;
     else if(cmp < 0)
-        return bst_search_recursive(tree, x->left, key);
+        return bst_search_recursive(x->left, key);
     else
-        return bst_search_recursive(tree, x->right, key);
+        return bst_search_recursive(x->right, key);
 }
 
 bst_node_t* bst_get(bst_t* tree, char* key){
-    return bst_search_recursive(tree, tree->root, key);
+    return bst_search_recursive(tree->root, key);
 }
 
 void bst_insert(bst_t* tree, bst_node_t* z){
-    bst_node_t* y = tree->NIL;
+    bst_node_t* y = NIL;
     bst_node_t* x = tree->root;
 
-    while(x != tree->NIL){
+    while(x != NIL){
         y = x;
         if(strcmp(z->key, x->key) < 0)
             x = x->left;
@@ -109,7 +102,7 @@ void bst_insert(bst_t* tree, bst_node_t* z){
             x = x->right;
     }
     z->parent = y;
-    if(y == tree->NIL)
+    if(y == NIL)
         tree->root = z;
     else if(strcmp(z->key, y->key) < 0)
         y->left = z;
@@ -120,10 +113,10 @@ void bst_insert(bst_t* tree, bst_node_t* z){
 }
 
 int bst_get_or_alloc_and_insert(bst_node_t** node, bst_t* tree, char* key){
-    bst_node_t* y = tree->NIL;
+    bst_node_t* y = NIL;
     bst_node_t* x = tree->root;
 
-    while(x != tree->NIL){
+    while(x != NIL){
         y = x;
         int cmp = strcmp(key, x->key);
         if(cmp == 0){
@@ -136,9 +129,9 @@ int bst_get_or_alloc_and_insert(bst_node_t** node, bst_t* tree, char* key){
             x = x->right;
     }
 
-    bst_node_t* z = bst_alloc_node(tree, key);
+    bst_node_t* z = bst_alloc_node(key);
     z->parent = y;
-    if(y == tree->NIL)
+    if(y == NIL)
         tree->root = z;
     else if(strcmp(z->key, y->key) < 0)
         y->left = z;
@@ -153,19 +146,19 @@ int bst_get_or_alloc_and_insert(bst_node_t** node, bst_t* tree, char* key){
 bst_node_t* bst_remove(bst_t* tree, bst_node_t* z){
     bst_node_t *x, *y;
 
-    if(z->left == tree->NIL || z->right == tree->NIL)
+    if(z->left == NIL || z->right == NIL)
         y = z;
     else
-        y = bst_get_successor(tree, z);
+        y = bst_get_successor(z);
 
-    if(y->left != tree->NIL)
+    if(y->left != NIL)
         x = y->left;
     else
         x = y->right;
 
     x->parent = y->parent;
 
-    if(y->parent == tree->NIL)
+    if(y->parent == NIL)
         tree->root = x;
     else if(y == y->parent->left)
         y->parent->left = x;
@@ -188,12 +181,12 @@ void bst_left_rotate(bst_t* tree, bst_node_t* x){
 
     x->right = y->left;
 
-    if(y->left != tree->NIL)
+    if(y->left != NIL)
         y->left->parent = x;
 
     y->parent = x->parent;
 
-    if(x->parent == tree->NIL)
+    if(x->parent == NIL)
         tree->root = y;
     else if(x == x->parent->left)
         x->parent->left = y;
@@ -209,12 +202,12 @@ void bst_right_rotate(bst_t* tree, bst_node_t* x){
 
     x->left = y->right;
 
-    if (y->right != tree->NIL)
+    if (y->right != NIL)
         y->right->parent = x;
 
     y->parent = x->parent;
 
-    if (x->parent == tree->NIL)
+    if (x->parent == NIL)
         tree->root = y;
     else if (x == x->parent->left)
         x->parent->left = y;

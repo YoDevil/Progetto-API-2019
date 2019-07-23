@@ -19,7 +19,6 @@ typedef struct bst_node_s {
 } bst_node_t;
 
 typedef struct {
-    bst_node_t* NIL;
     bst_node_t* root;
 } bst_t;
 
