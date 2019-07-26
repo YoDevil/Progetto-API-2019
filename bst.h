@@ -1,10 +1,4 @@
-#define BLACK 0
-#define RED 1
-
-void rb_insert_fixup(bst_t*, bst_node_t*);
-void rb_delete_fixup(bst_t* tree, bst_node_t* x);
-
-bst_node_t* NIL;
+#define NIL NULL
 
 bst_t* bst_create(){
     bst_t* tree = malloc(sizeof(bst_t));
@@ -107,9 +101,6 @@ void bst_insert(bst_t* tree, bst_node_t* z){
     else if(strcmp(z->key, y->key) < 0)
         y->left = z;
     else y->right = z;
-    
-    z->color = RED;
-    rb_insert_fixup(tree, z);
 }
 
 int bst_get_or_alloc_and_insert(bst_node_t** node, bst_t* tree, char* key){
@@ -137,8 +128,6 @@ int bst_get_or_alloc_and_insert(bst_node_t** node, bst_t* tree, char* key){
         y->left = z;
     else y->right = z;
 
-    z->color = RED;
-    rb_insert_fixup(tree, z);
     *node = z;
     return 1;
 }
@@ -156,7 +145,8 @@ bst_node_t* bst_remove(bst_t* tree, bst_node_t* z){
     else
         x = y->right;
 
-    x->parent = y->parent;
+    if(x != NULL)
+        x->parent = y->parent;
 
     if(y->parent == NIL)
         tree->root = x;
@@ -170,151 +160,5 @@ bst_node_t* bst_remove(bst_t* tree, bst_node_t* z){
         z->object = y->object;
     }
 
-    if(y->color == BLACK)
-        rb_delete_fixup(tree, x);
     return y;
-}
-
-// ================= RB FIXUPS ================= //
-void bst_left_rotate(bst_t* tree, bst_node_t* x){
-    bst_node_t* y = x->right;
-
-    x->right = y->left;
-
-    if(y->left != NIL)
-        y->left->parent = x;
-
-    y->parent = x->parent;
-
-    if(x->parent == NIL)
-        tree->root = y;
-    else if(x == x->parent->left)
-        x->parent->left = y;
-    else
-        x->parent->right = y;
-
-    y->left = x;
-    x->parent = y;
-}
-
-void bst_right_rotate(bst_t* tree, bst_node_t* x){
-    bst_node_t* y = x->left;
-
-    x->left = y->right;
-
-    if (y->right != NIL)
-        y->right->parent = x;
-
-    y->parent = x->parent;
-
-    if (x->parent == NIL)
-        tree->root = y;
-    else if (x == x->parent->left)
-        x->parent->left = y;
-    else
-        x->parent->right = y;
-
-    y->right = x;
-    x->parent = y;
-}
-
-void rb_insert_fixup(bst_t* tree, bst_node_t* z){
-    bst_node_t *x, *y;
-
-    if(z == tree->root)
-        tree->root->color = BLACK;
-    else {
-        x = z->parent;
-        if(x->color == RED){
-            if(x == x->parent->left){
-                y = x->parent->right;
-                if(y->color == RED){
-                    x->color = BLACK;
-                    y->color = BLACK;
-                    x->parent->color = RED;
-                    rb_insert_fixup(tree, x->parent);
-                } else {
-                    if(z == x->right){
-                        z = x;
-                        bst_left_rotate(tree, z);
-                        x = z->parent;
-                    }
-                    x->color = BLACK;
-                    x->parent->color = RED;
-                    bst_right_rotate(tree, x->parent);
-                }
-            } else { // x == x->parent->right
-                y = x->parent->left;
-                if(y->color == RED){
-                    x->color = BLACK;
-                    y->color = BLACK;
-                    x->parent->color = RED;
-                    rb_insert_fixup(tree, x->parent);
-                } else {
-                    if(z == x->left){
-                        z = x;
-                        bst_right_rotate(tree, z);
-                        x = z->parent;
-                    }
-                    x->color = BLACK;
-                    x->parent->color = RED;
-                    bst_left_rotate(tree, x->parent);
-                }
-            }
-        }
-    }
-}
-
-void rb_delete_fixup(bst_t* tree, bst_node_t* x){
-    bst_node_t* w;
-
-    if(x->color == RED || x->parent == NULL){
-        x->color = BLACK;
-    } else if(x == x->parent->left){
-        w = x->parent->right;
-        if(w->color == RED){
-            w->color = BLACK;
-            x->parent->color = RED;
-            bst_left_rotate(tree, x->parent);
-            w = x->parent->right;
-        }
-        if(w->left->color == BLACK && w->right->color == BLACK){
-            w->color = RED;
-            rb_delete_fixup(tree, x->parent);
-        } else {
-            if(w->right->color == BLACK){
-                w->left->color = BLACK;
-                w->color = RED;
-                bst_right_rotate(tree, w);
-                w = x->parent->right;
-            }
-            w->color = x->parent->color;
-            x->parent->color = BLACK;
-            w->right->color = BLACK;
-            bst_left_rotate(tree, x->parent);
-        }
-    } else {
-        w = x->parent->left;
-        if(w->color == RED){
-            w->color = BLACK;
-            x->parent->color = RED;
-            bst_right_rotate(tree, x->parent);
-            w = x->parent->left;
-        }
-        if(w->right->color == BLACK && w->left->color == BLACK){
-            w->color = RED;
-            rb_delete_fixup(tree, x->parent);
-        } else {
-            if(w->left->color == BLACK){
-                w->right->color = BLACK;
-                w->color = RED;
-                bst_left_rotate(tree, w);
-                w = x->parent->left;
-            }
-            w->color = x->parent->color;
-            x->parent->color = BLACK;
-            w->left->color = BLACK;
-            bst_right_rotate(tree, x->parent);
-        }
-    }
 }
