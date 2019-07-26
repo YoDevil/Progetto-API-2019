@@ -23,7 +23,7 @@ typedef struct {
 } bst_t;
 
 typedef struct {
-    bst_node_t* champions[MAX_CHAMPIONS];
+    char* champions[MAX_CHAMPIONS];
     int len;
     int max;
     int dirty;
@@ -35,7 +35,6 @@ typedef struct {
 } relation_t;
 
 typedef struct {
-    bst_t* giving;
     bst_t* receiving;
     int receiving_count;
 } connections_t;
