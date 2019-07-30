@@ -15,6 +15,7 @@ typedef struct bst_node_s {
     struct bst_node_s* parent;
     struct bst_node_s* left;
     struct bst_node_s* right;
+    char color;
 } bst_node_t;
 
 typedef struct {

@@ -25,6 +25,14 @@ int main(){
     char arg3[ID_LEN+1];
     int ok;
 
+    // global NIL node initialization
+    NIL = malloc(sizeof(bst_node_t));
+    NIL->color = BLACK;
+    NIL->parent = NIL;
+    NIL->left = NIL;
+    NIL->right = NIL;
+    NIL->key = NULL;
+
     ht_t tracked = {0};
     bst_t* relations_tree = bst_create();
 
