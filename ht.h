@@ -51,3 +51,15 @@ void ht_delete(ht_t ht, char* key){
         }
     }
 }
+
+void forall_in_ht(ht_t ht, void (*run)(ht_entry_t*)){
+    int i;
+    ht_entry_t* walk;
+    for(i = 0; i < HT_SIZE; i++){
+        walk = ht[i];
+        while(walk){
+            run(walk);
+            walk = walk->next;
+        }
+    }
+}

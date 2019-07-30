@@ -6,6 +6,8 @@
 #include "ht.h"
 #include "bst.h"
 
+#define LAMBDA(c_) ({ c_ _;})
+
 char* my_strdup(const char*);
 connections_t* alloc_connections();
 relation_t* alloc_relation();
@@ -138,30 +140,10 @@ void del_connection(bst_t* relations_tree, char* rel_id, char* from, char* to){
     }
 }
 
-void search_for_receiving_and_delete(relation_t* relation, bst_node_t* node, char* from){
-    if(node != NIL){
-        search_for_receiving_and_delete(relation, node->left, from);
-        search_for_receiving_and_delete(relation, node->right, from);
-
-        bst_t* receiving_tree = ((connections_t*)node->object)->receiving;
-        bst_node_t* tbd = bst_get(receiving_tree, from);
-        if(tbd != NIL) {
-            free(bst_remove(receiving_tree, tbd));
-            if(relation->record.max == ((connections_t*)node->object)->receiving_count)
-                relation->record.dirty = 1;
-
-            ((connections_t*)node->object)->receiving_count--;
-            
-            if(!has_connections(node))
-                free_connections(relation, node);
-        }
-    }
-}
-
-void del_entity_from_relation_recursive(bst_t* relations_tree, bst_node_t* relation_node, char* id){
+void del_entity_from_relation_recursive(ht_t tracked, bst_node_t* relation_node, char* id){
     if(relation_node != NIL){
-        del_entity_from_relation_recursive(relations_tree, relation_node->left, id);
-        del_entity_from_relation_recursive(relations_tree, relation_node->right, id);
+        del_entity_from_relation_recursive(tracked, relation_node->left, id);
+        del_entity_from_relation_recursive(tracked, relation_node->right, id);
 
         relation_t* relation = relation_node->object;
         bst_node_t* target = bst_get(relation->connections_tree, id);
@@ -178,13 +160,29 @@ void del_entity_from_relation_recursive(bst_t* relations_tree, bst_node_t* relat
         }
 
         // Find other entities that are receiving from me and delete that connections
-        search_for_receiving_and_delete(relation, relation->connections_tree->root, id);
+        forall_in_ht(tracked, LAMBDA(void _(ht_entry_t* ht_entry){
+            bst_node_t* other = bst_get(relation->connections_tree, ht_entry->key);
+            if(other != NIL){
+                connections_t* other_connections = other->object;
+                bst_node_t* me = bst_get(other_connections->receiving, id);
+                if(me != NIL){
+                    free(bst_remove(other_connections->receiving, me));
+                    if(relation->record.max == other_connections->receiving_count)
+                        relation->record.dirty = 1;
+
+                    other_connections->receiving_count--;
+
+                    if(!has_connections(other))
+                        free_connections(relation, other);
+                }
+            }
+        }));
     }
 }
 
 void del_entity(ht_t tracked, bst_t* relations_tree, char* id){
     // forall relations in relations_tree => delete id's connections
-    del_entity_from_relation_recursive(relations_tree, relations_tree->root, id);
+    del_entity_from_relation_recursive(tracked, relations_tree->root, id);
 
     ht_delete(tracked, id);
 }
