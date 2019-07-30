@@ -4,9 +4,19 @@
 void rb_insert_fixup(bst_t*, bst_node_t*);
 void rb_delete_fixup(bst_t* tree, bst_node_t* x);
 
-bst_node_t* NIL;
+bst_node_t* NIL = NULL;
 
 bst_t* bst_create(){
+    // global NIL node initialization
+    if(NIL == NULL){
+        NIL = malloc(sizeof(bst_node_t));
+        NIL->color = BLACK;
+        NIL->parent = NIL;
+        NIL->left = NIL;
+        NIL->right = NIL;
+        NIL->key = NULL;
+    }
+
     bst_t* tree = malloc(sizeof(bst_t));
     tree->root = NIL;
     return tree;
