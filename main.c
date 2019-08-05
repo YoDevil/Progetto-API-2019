@@ -12,6 +12,7 @@ char* my_strdup(const char*);
 connections_t* alloc_connections();
 relation_t* alloc_relation();
 void insertion_sort(char*[], int);
+void my_itoa(int, char*);
 void add_entity(ht_t, char*);
 void del_entity(ht_t, bst_t*, char*);
 void add_connection(bst_t*, char*, char*, char*);
@@ -216,6 +217,7 @@ void compute_champions(relation_t* relation){
 
 // Helper for report()
 int g_found_first = 0;
+char buf[5];
 int report_node_inorder(bst_t* tree, bst_node_t* relation_node){
     int any = 0;
     if(relation_node != NIL){
@@ -241,7 +243,9 @@ int report_node_inorder(bst_t* tree, bst_node_t* relation_node){
                 fputs(relation->record.champions[i], stdout);
                 fputs("\" ", stdout);
             }
-            fprintf(stdout, "%d;", relation->record.max);
+            my_itoa(relation->record.max, buf);
+            fputs(buf, stdout);
+            fputc(';', stdout);
 
             g_found_first = 1;
         }
@@ -291,4 +295,20 @@ char* my_strdup(const char* str){
     char* copy = malloc((ID_LEN+1) * sizeof(char));
     strcpy(copy, str);
     return copy;
+}
+
+// For inputs > 0 {strictly}
+void my_itoa(int n, char* buf){
+    int cpy = n;
+    int len = 0;
+    while(cpy>0){
+        len++;
+        cpy/=10;
+    }
+    buf[len] = '\0';
+    while(n>0){
+        buf[len-1] = '0' + n%10;
+        len--;
+        n/=10;
+    }
 }
