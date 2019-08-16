@@ -7,7 +7,10 @@
 #include "bst.h"
 
 #define LAMBDA(c_) ({ c_ _;})
+#define LINE_LEN ID_LEN*4
 
+void get_cmd(char**, char*);
+void get_arg(char**, char*);
 char* my_strdup(const char*);
 connections_t* alloc_connections();
 relation_t* alloc_relation();
@@ -20,53 +23,76 @@ void del_connection(bst_t*, char*, char*, char*);
 void report(bst_t*);
 
 int main(){
+    char* line;
+    char input[LINE_LEN];
     char cmd[ID_LEN+1];
     char arg1[ID_LEN+1];
     char arg2[ID_LEN+1];
     char arg3[ID_LEN+1];
-    int ok;
 
     ht_t tracked = {0};
     bst_t* relations_tree = bst_create();
 
     while(1){
-        ok = scanf("%s", cmd);
+        if(!fgets(input, LINE_LEN, stdin))
+            abort();
 
-        if (ok && !strcmp(cmd, "addent")){
-            ok = scanf(" \"%[^\"]\"", arg1);
+        line = input;
+        get_cmd(&line, cmd);
+        if (!strcmp(cmd, "addent")){
+            get_arg(&line, arg1);
             add_entity(tracked, arg1);
 
-        } else if(ok && !strcmp(cmd, "delent")){
-            ok = scanf(" \"%[^\"]\"", arg1);
+        } else if(!strcmp(cmd, "delent")){
+            get_arg(&line, arg1);
             if(ht_search(tracked, arg1))
                 del_entity(tracked, relations_tree, arg1);
 
-        } else if(ok && !strcmp(cmd, "addrel")){
-            ok = scanf(" \"%[^\"]\" \"%[^\"]\" \"%[^\"]\"", arg1, arg2, arg3);
+        } else if(!strcmp(cmd, "addrel")){
+            get_arg(&line, arg1);
+            get_arg(&line, arg2);
+            get_arg(&line, arg3);
             ht_entry_t* entity1 = ht_search(tracked, arg1);
             ht_entry_t* entity2 = ht_search(tracked, arg2);
             if(entity1 && entity2)
                 add_connection(relations_tree, arg3, entity1->key, entity2->key);
 
-        } else if(ok && !strcmp(cmd, "delrel")){
-            ok = scanf(" \"%[^\"]\" \"%[^\"]\" \"%[^\"]\"", arg1, arg2, arg3);
+        } else if(!strcmp(cmd, "delrel")){
+            get_arg(&line, arg1);
+            get_arg(&line, arg2);
+            get_arg(&line, arg3);
             ht_entry_t* entity1 = ht_search(tracked, arg1);
             ht_entry_t* entity2 = ht_search(tracked, arg2);
             if(entity1 && entity2)
                 del_connection(relations_tree, arg3, arg1, arg2);
 
-        } else if(ok && !strcmp(cmd, "report")){
+        } else if(!strcmp(cmd, "report")){
             report(relations_tree);
-        } else if(ok && !strcmp(cmd, "end")){
+        } else if(!strcmp(cmd, "end")){
             fflush(stdout);
             break;
         }
-
-        if(!ok)
-            abort();
     }
 
     return 0;
+}
+
+void get_cmd(char** from, char* to){
+    char* line = *from;
+    int i;
+    for(i = 0; line[i] != '\0' && line[i] != '\n' && line[i] != ' '; i++)
+        to[i] = line[i];
+    to[i] = '\0';
+    *from = *from + i + 1;
+}
+
+void get_arg(char** from, char* to){
+    char* line = *from;
+    int i;
+    for(i = 1; line[i] != '\0' && line[i] != '\n' && line[i] != '"'; i++)
+        to[i-1] = line[i];
+    to[i-1] = '\0';
+    *from = *from + i + 2;
 }
 
 void add_entity(ht_t tracked, char* id){
